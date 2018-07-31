@@ -24,9 +24,9 @@ package org.evosuite.coverage;
 
 import org.evosuite.Properties;
 import org.evosuite.Properties.Criterion;
+import org.evosuite.TestGenerationContext;
 import org.evosuite.coverage.ambiguity.AmbiguityCoverageSuiteFitness;
 import org.evosuite.coverage.rho.RhoCoverageSuiteFitness;
-import org.evosuite.TestGenerationContext;
 import org.evosuite.rmi.ClientServices;
 import org.evosuite.statistics.RuntimeVariable;
 import org.evosuite.testcase.DefaultTestCase;
@@ -44,7 +44,6 @@ import java.util.*;
 
 /**
  * @author Gordon Fraser
- *
  */
 public class CoverageCriteriaAnalyzer {
 
@@ -178,6 +177,8 @@ public class CoverageCriteriaAnalyzer {
                 return RuntimeVariable.BranchCoverage;
             case TRYCATCH:
                 return RuntimeVariable.TryCatchCoverage;
+            case CUSTOM:
+                return RuntimeVariable.Custom_Property;
             default:
                 throw new RuntimeException("Criterion not supported: " + criterion);
 
@@ -204,7 +205,7 @@ public class CoverageCriteriaAnalyzer {
     }
 
     public static void analyzeCoverage(TestSuiteChromosome testSuite, Properties.Criterion criterion) {
-        analyzeCoverage(testSuite,criterion,true);
+        analyzeCoverage(testSuite, criterion, true);
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -214,7 +215,7 @@ public class CoverageCriteriaAnalyzer {
 
         TestFitnessFactory factory = FitnessFunctions.getFitnessFactory(criterion);
 
-        if(recalculate) {
+        if (recalculate) {
             reinstrument(testSuiteCopy, criterion);
 
             for (TestChromosome test : testSuiteCopy.getTestChromosomes()) {
@@ -244,8 +245,9 @@ public class CoverageCriteriaAnalyzer {
             } else {
                 logger.debug("Goal {} is not covered", goal);
                 buffer.append("0");
-                if (Properties.PRINT_MISSED_GOALS)
+                if (Properties.PRINT_MISSED_GOALS) {
                     LoggingUtils.getEvoLogger().info(" - Missed goal {}", goal.toString());
+                }
             }
         }
 
