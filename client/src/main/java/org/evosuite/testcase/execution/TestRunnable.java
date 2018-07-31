@@ -19,390 +19,421 @@
  */
 package org.evosuite.testcase.execution;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.evosuite.PackageInfo;
 import org.evosuite.Properties;
-import org.evosuite.runtime.Runtime;
+import org.evosuite.dse.VMError;
 import org.evosuite.runtime.System.SystemExitException;
 import org.evosuite.runtime.jvm.ShutdownHookHandler;
 import org.evosuite.runtime.thread.KillSwitch;
 import org.evosuite.runtime.thread.ThreadStopper;
-import org.evosuite.testcase.statements.Statement;
 import org.evosuite.testcase.TestCase;
+import org.evosuite.testcase.statements.Statement;
 import org.evosuite.utils.LoggingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.evosuite.dse.VMError;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * <p>
  * TestRunnable class.
  * </p>
- * 
+ *
  * @author Gordon Fraser
  */
 public class TestRunnable implements InterfaceTestRunnable {
 
-	private static final Logger logger = LoggerFactory.getLogger(TestRunnable.class);
+    private static final Logger logger = LoggerFactory.getLogger(TestRunnable.class);
 
-	private static ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+    private static ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
 
-	private final TestCase test;
+    private final TestCase test;
 
-	private final Scope scope;
+    private final Scope scope;
 
-	protected boolean runFinished;
+    protected boolean runFinished;
 
-	/**
-	 * Map a thrown exception ('value') with the the position ('key') in the
-	 * test sequence in which it was thrown from.
-	 */
-	protected Map<Integer, Throwable> exceptionsThrown = new HashMap<>();
+    /**
+     * Map a thrown exception ('value') with the the position ('key') in the
+     * test sequence in which it was thrown from.
+     */
+    protected Map<Integer, Throwable> exceptionsThrown = new HashMap<>();
 
-	protected Set<ExecutionObserver> observers;
+    protected Set<ExecutionObserver> observers;
 
-	protected final ThreadStopper threadStopper;
-	
-	/**
-	 * <p>
-	 * Constructor for TestRunnable.
-	 * </p>
-	 * 
-	 * @param tc
-	 *            a {@link org.evosuite.testcase.TestCase} object.
-	 * @param scope
-	 *            a {@link org.evosuite.testcase.execution.Scope} object.
-	 * @param observers
-	 *            a {@link java.util.Set} object.
-	 */
-	public TestRunnable(TestCase tc, Scope scope, Set<ExecutionObserver> observers) {
-		test = tc;
-		this.scope = scope;
-		this.observers = observers;
-		runFinished = false;
-		
-		KillSwitch killSwitch = new KillSwitch() {			
-			@Override
-			public void setKillSwitch(boolean kill) {
-				ExecutionTracer.setKillSwitch(kill);
-			}
-		};
-		Set<String> threadsToIgnore = new LinkedHashSet<>();
-		threadsToIgnore.add(TestCaseExecutor.TEST_EXECUTION_THREAD);
-		threadsToIgnore.addAll(Arrays.asList(Properties.IGNORE_THREADS));
-		
-		threadStopper = new ThreadStopper(killSwitch, threadsToIgnore, Properties.TIMEOUT);
-	}
+    protected final ThreadStopper threadStopper;
 
-	/**
-	 * <p>
-	 * After the test case is executed, if any SUT thread is still running, we
-	 * will wait for their termination. To identify which thread belong to SUT,
-	 * before test case execution we should check which are the threads that are
-	 * running.
-	 * </p>
-	 * <p>
-	 * WARNING: The sandbox might prevent accessing thread informations, so best
-	 * to call this method from outside this class
-	 * </p>
-	 */
-	public void storeCurrentThreads() {
-		threadStopper.storeCurrentThreads();
-	}
+    /**
+     * <p>
+     * Constructor for TestRunnable.
+     * </p>
+     *
+     * @param tc        a {@link org.evosuite.testcase.TestCase} object.
+     * @param scope     a {@link org.evosuite.testcase.execution.Scope} object.
+     * @param observers a {@link java.util.Set} object.
+     */
+    public TestRunnable(TestCase tc, Scope scope, Set<ExecutionObserver> observers) {
+        test = tc;
+        this.scope = scope;
+        this.observers = observers;
+        runFinished = false;
 
-	/**
-	 * Try to kill (and then join) the SUT threads. Killing the SUT threads is
-	 * important, because some spawn threads could just wait on objects/locks,
-	 * and so make the test case executions always last TIMEOUT ms.
-	 */
-	public void killAndJoinClientThreads() throws IllegalStateException {
-		threadStopper.killAndJoinClientThreads();
-	}
+        KillSwitch killSwitch = new KillSwitch() {
+            @Override
+            public void setKillSwitch(boolean kill) {
+                ExecutionTracer.setKillSwitch(kill);
+            }
+        };
+        Set<String> threadsToIgnore = new LinkedHashSet<>();
+        threadsToIgnore.add(TestCaseExecutor.TEST_EXECUTION_THREAD);
+        threadsToIgnore.addAll(Arrays.asList(Properties.IGNORE_THREADS));
 
-	/**
-	 * Inform all observers that we are going to execute the input statement
-	 * 
-	 * @param s
-	 *            the statement to execute
-	 */
-	protected void informObservers_before(Statement s) {
-		ExecutionTracer.disable();
-		try {
-			for (ExecutionObserver observer : observers) {
-				observer.beforeStatement(s, scope);
-			}
-		} finally {
-			ExecutionTracer.enable();
-		}
-	}
+        threadStopper = new ThreadStopper(killSwitch, threadsToIgnore, Properties.TIMEOUT);
+    }
 
-	/**
-	 * Inform all observers that input statement has been executed
-	 * 
-	 * @param s
-	 *            the executed statement
-	 * @param exceptionThrown
-	 *            the exception thrown when executing the statement, if any (can
-	 *            be null)
-	 */
-	protected void informObservers_after(Statement s, Throwable exceptionThrown) {
-		ExecutionTracer.disable();
-		try {
-			for (ExecutionObserver observer : observers) {
-				observer.afterStatement(s, scope, exceptionThrown);
-			}
-		} finally {
-			ExecutionTracer.enable();
-		}
-	}
+    /**
+     * <p>
+     * After the test case is executed, if any SUT thread is still running, we
+     * will wait for their termination. To identify which thread belong to SUT,
+     * before test case execution we should check which are the threads that are
+     * running.
+     * </p>
+     * <p>
+     * WARNING: The sandbox might prevent accessing thread informations, so best
+     * to call this method from outside this class
+     * </p>
+     */
+    public void storeCurrentThreads() {
+        threadStopper.storeCurrentThreads();
+    }
 
-	protected void informObservers_finished(ExecutionResult result) {
-		ExecutionTracer.disable();
-		try {
-			for (ExecutionObserver observer : observers) {
-				observer.testExecutionFinished(result, scope);
-			}
-		} finally {
-			ExecutionTracer.enable();
-		}
-	}
-	
-	/** {@inheritDoc} */
-	@Override
-	public ExecutionResult call() {
+    /**
+     * Try to kill (and then join) the SUT threads. Killing the SUT threads is
+     * important, because some spawn threads could just wait on objects/locks,
+     * and so make the test case executions always last TIMEOUT ms.
+     */
+    public void killAndJoinClientThreads() throws IllegalStateException {
+        threadStopper.killAndJoinClientThreads();
+    }
 
-		exceptionsThrown.clear();
+    /**
+     * Inform all observers that we are going to execute the input statement
+     *
+     * @param s the statement to execute
+     */
+    protected void informObservers_before(Statement s) {
+        ExecutionTracer.disable();
+        try {
+            for (ExecutionObserver observer : observers) {
+                observer.beforeStatement(s, scope);
+            }
+        } finally {
+            ExecutionTracer.enable();
+        }
+    }
 
-		runFinished = false;
-		ExecutionResult result = new ExecutionResult(test, null);
-		// TODO: Moved this to TestCaseExecutor so it is not part of the test execution timeout
-		//		Runtime.getInstance().resetRuntime();
-		ExecutionTracer.enable();
+    /**
+     * Inform all observers that input statement has been executed
+     *
+     * @param s               the executed statement
+     * @param exceptionThrown the exception thrown when executing the statement, if any (can
+     *                        be null)
+     */
+    protected void informObservers_after(Statement s, Throwable exceptionThrown) {
+        ExecutionTracer.disable();
+        try {
+            for (ExecutionObserver observer : observers) {
+                observer.afterStatement(s, scope, exceptionThrown);
+            }
+        } finally {
+            ExecutionTracer.enable();
+        }
+    }
 
-		PrintStream out = (Properties.PRINT_TO_SYSTEM ? System.out : new PrintStream(byteStream));
-		byteStream.reset();
+    protected void informObservers_finished(ExecutionResult result) {
+        ExecutionTracer.disable();
+        try {
+            for (ExecutionObserver observer : observers) {
+                observer.testExecutionFinished(result, scope);
+            }
+        } finally {
+            ExecutionTracer.enable();
+        }
+    }
 
-		if (!Properties.PRINT_TO_SYSTEM) {
-			LoggingUtils.muteCurrentOutAndErrStream();
-		}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ExecutionResult call() {
 
-		threadStopper.startRecordingTime();
+        exceptionsThrown.clear();
 
-		/*
-		 *  need AtomicInteger as we want to get latest updated value even if exception is thrown in the 'try' block.
-		 *  we practically use it as wrapper for int, which we can then pass by reference
-		 */
-		AtomicInteger num = new AtomicInteger(0);
+        runFinished = false;
+        ExecutionResult result = new ExecutionResult(test, null);
+        // TODO: Moved this to TestCaseExecutor so it is not part of the test execution timeout
+        //		Runtime.getInstance().resetRuntime();
+        ExecutionTracer.enable();
 
-		try {
-			if(Properties.REPLACE_CALLS){
-				ShutdownHookHandler.getInstance().initHandler();
-			}
-			
-			executeStatements(result, out, num);
-		} catch (ThreadDeath e) {// can't stop these guys
-			logger.info("Found error in " + test.toCode(), e);
-			throw e; // this needs to be propagated
-		} catch (TimeoutException | TestCaseExecutor.TimeoutExceeded e) {
-			logger.info("Test timed out!");
-		} catch (Throwable e) {
-			if (e instanceof EvosuiteError) {
-				logger.info("Evosuite Error!", e);
-				throw (EvosuiteError) e;
-			}
-			if (e instanceof VMError) {
-				logger.info("VM Error!", e);
-				throw (VMError) e;
-			}
-			logger.info("Exception at statement " + num + "! " + e);
-			for (StackTraceElement elem : e.getStackTrace()) {
-				logger.info(elem.toString());
-			}
-			if (e instanceof java.lang.reflect.InvocationTargetException) {
-				logger.info("Cause: " + e.getCause().toString(), e);
-				e = e.getCause();
-			}
-			if (e instanceof AssertionError
-			        && e.getStackTrace()[0].getClassName().contains(PackageInfo.getEvoSuitePackage())) {
-				logger.error("Assertion Error in evosuitecode, for statement \n"
-				        + test.getStatement(num.get()).getCode() + " \n which is number: "
-				        + num + " testcase \n" + test.toCode(), e);
-				throw (AssertionError) e;
-			}
+        PrintStream out = (Properties.PRINT_TO_SYSTEM ? System.out : new PrintStream(byteStream));
+        byteStream.reset();
 
-			logger.error("Suppressed/ignored exception during test case execution on class "
-			                     + Properties.TARGET_CLASS + ": " + e.getMessage(), e);
-		} finally {
-			if (!Properties.PRINT_TO_SYSTEM) {
-				LoggingUtils.restorePreviousOutAndErrStream();
-			}
-			if(Properties.REPLACE_CALLS){
-				/*
-				 * For simplicity, we call it here. Ideally, we could call it among the
-				 * statements, with "non-safe" version, to check if any exception is thrown.
-				 * But that would be quite a bit of work, which maybe is not really warranted 
-				 */
-				ShutdownHookHandler.getInstance().safeExecuteAddedHooks();
-			}
-			
-			runFinished = true;
-		}
+        boolean oldPrintToSystem = Properties.PRINT_TO_SYSTEM;
+        if (Properties.PRINT_TO_SYSTEM && Properties.PRINT_TO_RESULT) {
+            logger.warn("Both properties {} and {} are set to true, can't do both. Printing to result", "PRINT_TO_SYSTEM", "PRINT_TO_RESULT");
+            Properties.PRINT_TO_SYSTEM = false;
+        }
+        if (!Properties.PRINT_TO_SYSTEM && !Properties.PRINT_TO_RESULT) {
+            LoggingUtils.muteCurrentOutAndErrStream();
+        }
 
-		result.setTrace(ExecutionTracer.getExecutionTracer().getTrace());
-		result.setExecutionTime(System.currentTimeMillis() - threadStopper.getStartTime());
-		result.setExecutedStatements(num.get());
-		result.setThrownExceptions(exceptionsThrown);
-		result.setReadProperties(org.evosuite.runtime.System.getAllPropertiesReadSoFar());
-		result.setWasAnyPropertyWritten(org.evosuite.runtime.System.wasAnyPropertyWritten());
-		
-		return result;
-	}
+        PrintStream oldOut = System.out;
+        PrintStream oldErr = System.err;
+        ByteArrayOutputStream stdOutStream = new ByteArrayOutputStream();
+        ByteArrayOutputStream stdErrStream = new ByteArrayOutputStream();
+        PrintStream tempStdOut = new PrintStream(stdOutStream);
+        PrintStream tempStdErr = new PrintStream(stdErrStream);
+        if (Properties.PRINT_TO_RESULT) {
+            System.setOut(tempStdOut); //redirect system out to this stream while the test is run
+            System.setErr(tempStdErr); //redirect system err to this stream while the test is run
+        }
 
-	/**
-	 * Iterate over all statements in the test case, and execute them one at a time
-	 * 
-	 * @param result
-	 * @param out
-	 * @param num
-	 * @throws TimeoutException
-	 * @throws InvocationTargetException
-	 * @throws IllegalAccessException
-	 * @throws InstantiationException
-	 * @throws VMError
-	 * @throws EvosuiteError
-	 */
-	private void executeStatements(ExecutionResult result, PrintStream out,
-			AtomicInteger num) throws TimeoutException,
-			InvocationTargetException, IllegalAccessException,
-			InstantiationException, VMError, EvosuiteError {
-		
-		for (Statement s : test) {
+        threadStopper.startRecordingTime();
 
-			if (Thread.currentThread().isInterrupted() || Thread.interrupted()) {
-				logger.info("Thread interrupted at statement " + num + ": " + s.getCode());
-				throw new TimeoutException();
-			}
+        /*
+         *  need AtomicInteger as we want to get latest updated value even if exception is thrown in the 'try' block.
+         *  we practically use it as wrapper for int, which we can then pass by reference
+         */
+        AtomicInteger num = new AtomicInteger(0);
 
-			if (logger.isDebugEnabled()) {
-				logger.debug("Executing statement " + s.getCode());
-			}
+        try {
+            if (Properties.REPLACE_CALLS) {
+                ShutdownHookHandler.getInstance().initHandler();
+            }
 
-			ExecutionTracer.statementExecuted();
-			informObservers_before(s);
+            executeStatements(result, out, num);
+        } catch (
+                ThreadDeath e) {// can't stop these guys
+            logger.info("Found error in " + test.toCode(), e);
+            throw e; // this needs to be propagated
+        } catch (TimeoutException |
+                TestCaseExecutor.TimeoutExceeded e) {
+            logger.info("Test timed out!");
+        } catch (
+                Throwable e) {
+            if (e instanceof EvosuiteError) {
+                logger.info("Evosuite Error!", e);
+                throw (EvosuiteError) e;
+            }
+            if (e instanceof VMError) {
+                logger.info("VM Error!", e);
+                throw (VMError) e;
+            }
+            logger.info("Exception at statement " + num + "! " + e);
+            for (StackTraceElement elem : e.getStackTrace()) {
+                logger.info(elem.toString());
+            }
+            if (e instanceof java.lang.reflect.InvocationTargetException) {
+                logger.info("Cause: " + e.getCause().toString(), e);
+                e = e.getCause();
+            }
+            if (e instanceof AssertionError
+                    && e.getStackTrace()[0].getClassName().contains(PackageInfo.getEvoSuitePackage())) {
+                logger.error("Assertion Error in evosuitecode, for statement \n"
+                        + test.getStatement(num.get()).getCode() + " \n which is number: "
+                        + num + " testcase \n" + test.toCode(), e);
+                throw (AssertionError) e;
+            }
 
-			/*
-			 * Here actually execute a statement of the SUT
-			 */
-			Throwable exceptionThrown = s.execute(scope, out);
+            logger.error("Suppressed/ignored exception during test case execution on class "
+                    + Properties.TARGET_CLASS + ": " + e.getMessage(), e);
+        } finally {
+            if (!Properties.PRINT_TO_SYSTEM) {
+                LoggingUtils.restorePreviousOutAndErrStream();
+            }
+            if (Properties.REPLACE_CALLS) {
+                /*
+                 * For simplicity, we call it here. Ideally, we could call it among the
+                 * statements, with "non-safe" version, to check if any exception is thrown.
+                 * But that would be quite a bit of work, which maybe is not really warranted
+                 */
+                ShutdownHookHandler.getInstance().safeExecuteAddedHooks();
+            }
 
-			if (exceptionThrown != null) {
-				// if internal error, then throw exception
-				// -------------------------------------------------------
-				if (exceptionThrown instanceof VMError) {
-					throw (VMError) exceptionThrown;
-				}
-				if (exceptionThrown instanceof EvosuiteError) {
-					throw (EvosuiteError) exceptionThrown;
-				}
-				// -------------------------------------------------------
+            runFinished = true;
+        }
 
-				/*
-				 * This is implemented in this way due to ExecutionResult.hasTimeout()
-				 */
-				if (exceptionThrown instanceof TestCaseExecutor.TimeoutExceeded) {
-					logger.debug("Test timed out!");
-					exceptionsThrown.put(test.size(), exceptionThrown);
-					result.setThrownExceptions(exceptionsThrown);
-					result.reportNewThrownException(test.size(), exceptionThrown);
-					result.setTrace(ExecutionTracer.getExecutionTracer().getTrace());
-					break;
-				}
+        tempStdOut.flush();
+        tempStdErr.flush();
+        if (Properties.PRINT_TO_RESULT) {
+            if (stdOutStream.size() > 0) {
+                result.setStandardOut(new String(stdOutStream.toByteArray(), StandardCharsets.US_ASCII));
+            }
+            if (stdErrStream.size() > 0) {
+                result.setStandardErr(new String(stdErrStream.toByteArray(), StandardCharsets.US_ASCII));
+            }
 
-				// keep track if the exception and where it was thrown
-				exceptionsThrown.put(num.get(), exceptionThrown);
+            System.setOut(oldOut);
+            System.setErr(oldErr);
+        }
+        tempStdOut.close();
+        tempStdErr.close();
+        Properties.PRINT_TO_SYSTEM = oldPrintToSystem;
 
-				// check if it was an explicit exception
-				// --------------------------------------------------------
-				if (ExecutionTracer.getExecutionTracer().getLastException() == exceptionThrown) {
-					result.explicitExceptions.put(num.get(), true);
-				} else {
-					result.explicitExceptions.put(num.get(), false);
-				}
-				// --------------------------------------------------------
+        result.setTrace(ExecutionTracer.getExecutionTracer().getTrace());
+        result.setExecutionTime(System.currentTimeMillis() - threadStopper.getStartTime());
+        result.setExecutedStatements(num.get());
+        result.setThrownExceptions(exceptionsThrown);
+        result.setReadProperties(org.evosuite.runtime.System.getAllPropertiesReadSoFar());
+        result.setWasAnyPropertyWritten(org.evosuite.runtime.System.wasAnyPropertyWritten());
 
-				printDebugInfo(s, exceptionThrown);
-				// --------------------------------------------------------
+        return result;
+    }
 
-				/*
-				 * If an exception is thrown, we stop the execution of the test case, because the internal state could be corrupted, and not
-				 * possible to verify the behavior of any following function call. Predicate should be true by default
-				 */
-				if (Properties.BREAK_ON_EXCEPTION
-				        || exceptionThrown instanceof SystemExitException) {
-					informObservers_after(s, exceptionThrown);
-					break;
-				}
-			}
+    /**
+     * Iterate over all statements in the test case, and execute them one at a time
+     *
+     * @param result
+     * @param out
+     * @param num
+     * @throws TimeoutException
+     * @throws InvocationTargetException
+     * @throws IllegalAccessException
+     * @throws InstantiationException
+     * @throws VMError
+     * @throws EvosuiteError
+     */
+    private void executeStatements(ExecutionResult result, PrintStream out,
+                                   AtomicInteger num) throws TimeoutException,
+            InvocationTargetException, IllegalAccessException,
+            InstantiationException, VMError, EvosuiteError {
 
-			if (logger.isDebugEnabled()) {
-				logger.debug("Done statement " + s.getCode());
-			}
+        for (Statement s : test) {
 
-			informObservers_after(s, exceptionThrown);
+            if (Thread.currentThread().isInterrupted() || Thread.interrupted()) {
+                logger.info("Thread interrupted at statement " + num + ": " + s.getCode());
+                throw new TimeoutException();
+            }
 
-			num.incrementAndGet();
-		} // end of loop
-		informObservers_finished(result);
-		//TODO
-	}
+            if (logger.isDebugEnabled()) {
+                logger.debug("Executing statement " + s.getCode());
+            }
 
-	private void printDebugInfo(Statement s, Throwable exceptionThrown) {
-		// some debugging info
-		// --------------------------------------------------------
+            ExecutionTracer.statementExecuted();
+            informObservers_before(s);
 
-		if (logger.isDebugEnabled()) {
-			logger.debug("Exception thrown in statement: " + s.getCode()
-			        + " - " + exceptionThrown.getClass().getName() + " - "
-			        + exceptionThrown.getMessage());
-			for (StackTraceElement elem : exceptionThrown.getStackTrace()) {
-				logger.debug(elem.toString());
-			}
-			if (exceptionThrown.getCause() != null) {
-				logger.debug("Cause: "
-				        + exceptionThrown.getCause().getClass().getName()
-				        + " - " + exceptionThrown.getCause().getMessage());
-				for (StackTraceElement elem : exceptionThrown.getCause().getStackTrace()) {
-					logger.debug(elem.toString());
-				}
-			} else {
-				logger.debug("Cause is null");
-			}
-		}
-	}
+            /*
+             * Here actually execute a statement of the SUT
+             */
+            Throwable exceptionThrown = s.execute(scope, out);
 
-	/** {@inheritDoc} */
-	@Override
-	public Map<Integer, Throwable> getExceptionsThrown() {
-		HashMap<Integer, Throwable> copy = new HashMap<Integer, Throwable>();
-		copy.putAll(exceptionsThrown);
-		return copy;
-	}
+            if (exceptionThrown != null) {
+                // if internal error, then throw exception
+                // -------------------------------------------------------
+                if (exceptionThrown instanceof VMError) {
+                    throw (VMError) exceptionThrown;
+                }
+                if (exceptionThrown instanceof EvosuiteError) {
+                    throw (EvosuiteError) exceptionThrown;
+                }
+                // -------------------------------------------------------
 
-	/** {@inheritDoc} */
-	@Override
-	public boolean isRunFinished() {
-		return runFinished;
-	}
+                /*
+                 * This is implemented in this way due to ExecutionResult.hasTimeout()
+                 */
+                if (exceptionThrown instanceof TestCaseExecutor.TimeoutExceeded) {
+                    logger.debug("Test timed out!");
+                    exceptionsThrown.put(test.size(), exceptionThrown);
+                    result.setThrownExceptions(exceptionsThrown);
+                    result.reportNewThrownException(test.size(), exceptionThrown);
+                    result.setTrace(ExecutionTracer.getExecutionTracer().getTrace());
+                    break;
+                }
+
+                // keep track if the exception and where it was thrown
+                exceptionsThrown.put(num.get(), exceptionThrown);
+
+                // check if it was an explicit exception
+                // --------------------------------------------------------
+                if (ExecutionTracer.getExecutionTracer().getLastException() == exceptionThrown) {
+                    result.explicitExceptions.put(num.get(), true);
+                } else {
+                    result.explicitExceptions.put(num.get(), false);
+                }
+                // --------------------------------------------------------
+
+                printDebugInfo(s, exceptionThrown);
+                // --------------------------------------------------------
+
+                /*
+                 * If an exception is thrown, we stop the execution of the test case, because the internal state could be corrupted, and not
+                 * possible to verify the behavior of any following function call. Predicate should be true by default
+                 */
+                if (Properties.BREAK_ON_EXCEPTION
+                        || exceptionThrown instanceof SystemExitException) {
+                    informObservers_after(s, exceptionThrown);
+                    break;
+                }
+            }
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Done statement " + s.getCode());
+            }
+
+            informObservers_after(s, exceptionThrown);
+
+            num.incrementAndGet();
+        } // end of loop
+        informObservers_finished(result);
+        //TODO
+    }
+
+    private void printDebugInfo(Statement s, Throwable exceptionThrown) {
+        // some debugging info
+        // --------------------------------------------------------
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("Exception thrown in statement: " + s.getCode()
+                    + " - " + exceptionThrown.getClass().getName() + " - "
+                    + exceptionThrown.getMessage());
+            for (StackTraceElement elem : exceptionThrown.getStackTrace()) {
+                logger.debug(elem.toString());
+            }
+            if (exceptionThrown.getCause() != null) {
+                logger.debug("Cause: "
+                        + exceptionThrown.getCause().getClass().getName()
+                        + " - " + exceptionThrown.getCause().getMessage());
+                for (StackTraceElement elem : exceptionThrown.getCause().getStackTrace()) {
+                    logger.debug(elem.toString());
+                }
+            } else {
+                logger.debug("Cause is null");
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<Integer, Throwable> getExceptionsThrown() {
+        HashMap<Integer, Throwable> copy = new HashMap<Integer, Throwable>();
+        copy.putAll(exceptionsThrown);
+        return copy;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isRunFinished() {
+        return runFinished;
+    }
 
 }

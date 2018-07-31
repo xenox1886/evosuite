@@ -2,7 +2,10 @@ package org.evosuite.coverage.custom;
 
 import org.evosuite.coverage.TestFitnessFactory;
 import org.evosuite.testcase.TestFitnessFunction;
+import org.evosuite.testcase.execution.TestRunnable;
 import org.evosuite.testsuite.TestSuiteFitnessFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Creates the suite, factory and retrieves the class of the fitness function.
@@ -11,6 +14,7 @@ import org.evosuite.testsuite.TestSuiteFitnessFunction;
  */
 public class CustomFitnessFunctionCreator {
     private static CustomFitnessFunctionCreator ourInstance = new CustomFitnessFunctionCreator();
+    private static final Logger logger = LoggerFactory.getLogger(TestRunnable.class);
 
     public static CustomFitnessFunctionCreator getInstance() {
         return ourInstance;
@@ -19,7 +23,7 @@ public class CustomFitnessFunctionCreator {
     private CustomFitnessFunctionCreator() {
     }
 
-    private static CustomFitnessFunctionProvider customFitnessFunctionProvider;
+    private CustomFitnessFunctionProvider customFitnessFunctionProvider;
 
 
     public TestSuiteFitnessFunction getNewFitnessFunctionSuite() {
@@ -43,7 +47,7 @@ public class CustomFitnessFunctionCreator {
         return customFitnessFunctionProvider.getTestFitnessFunctionClass();
     }
 
-    public static void setCustomFitnessFunctionProvider(CustomFitnessFunctionProvider customFitnessFunctionProvider) {
-        CustomFitnessFunctionCreator.customFitnessFunctionProvider = customFitnessFunctionProvider;
+    public void setCustomFitnessFunctionProvider(CustomFitnessFunctionProvider customFitnessFunctionProvider) {
+        this.customFitnessFunctionProvider = customFitnessFunctionProvider;
     }
 }
