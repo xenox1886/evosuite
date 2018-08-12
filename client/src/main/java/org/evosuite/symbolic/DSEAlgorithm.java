@@ -3,6 +3,7 @@ package org.evosuite.symbolic;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,18 +12,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.evosuite.Properties;
-import org.evosuite.TestGenerationContext;
-import org.evosuite.coverage.branch.BranchCoverageSuiteFitness;
-import org.evosuite.dse.TestCaseBuilder;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
-import org.evosuite.instrumentation.InstrumentingClassLoader;
 import org.evosuite.runtime.classhandling.ClassResetter;
 import org.evosuite.symbolic.expr.Constraint;
+import org.evosuite.symbolic.expr.IntegerConstraint;
+import org.evosuite.symbolic.expr.Variable;
+import org.evosuite.symbolic.expr.bv.IntegerConstant;
+import org.evosuite.symbolic.expr.bv.IntegerVariable;
+import org.evosuite.symbolic.expr.fp.RealVariable;
+import org.evosuite.symbolic.expr.str.StringVariable;
 import org.evosuite.symbolic.solver.SolverResult;
+import org.evosuite.symbolic.vm.ConstraintFactory;
+import org.evosuite.symbolic.vm.ExpressionFactory;
 import org.evosuite.testcase.DefaultTestCase;
 import org.evosuite.testcase.TestCase;
-import org.evosuite.testcase.TestChromosome;
 import org.evosuite.testcase.localsearch.DSETestGenerator;
 import org.evosuite.testcase.variable.VariableReference;
 import org.evosuite.testsuite.TestSuiteChromosome;
@@ -39,295 +44,401 @@ import org.slf4j.LoggerFactory;
  */
 public class DSEAlgorithm extends GeneticAlgorithm<TestSuiteChromosome> {
 
-	private static final Logger logger = LoggerFactory.getLogger(DSEAlgorithm.class);
+  private static final Logger logger = LoggerFactory.getLogger(DSEAlgorithm.class);
 
-	/**
-	 * Applies DSE test generation on a static non-private method until a stopping
-	 * condition is met or all queries have been explored.
-	 * 
-	 * @param staticEntryMethod
-	 * 
-	 */
-	private void generateTestCasesAndAppendToBestIndividual(Method staticEntryMethod) {
+  /**
+   * A cache of previous results from the constraint solver
+   */
+  private final Map<Set<Constraint<?>>, SolverResult> queryCache =
+      new HashMap<Set<Constraint<?>>, SolverResult>();
 
-		double fitnessBeforeAddingDefaultTest = this.getBestIndividual().getFitness();
-		logger.debug("Fitness before adding default test case:" + fitnessBeforeAddingDefaultTest);
+  /**
+   * Applies DSE test generation on a static non-private method until a stopping condition is met or
+   * all queries have been explored.
+   * 
+   * @param staticEntryMethod
+   * 
+   */
+  private void generateTestCasesAndAppendToBestIndividual(Method staticEntryMethod) {
 
-		List<TestCase> generatedTestCases = new ArrayList<TestCase>();
+    double fitnessBeforeAddingDefaultTest = this.getBestIndividual().getFitness();
+    logger.debug("Fitness before adding default test case:" + fitnessBeforeAddingDefaultTest);
 
-		TestCase testCaseWithDefaultValues = buildTestCaseWithDefaultValues(staticEntryMethod);
-		getBestIndividual().addTest(testCaseWithDefaultValues);
-		generatedTestCases.add(testCaseWithDefaultValues);
+    List<TestCase> generatedTests = new ArrayList<TestCase>();
 
-		logger.debug("Created new default test case with default values:" + testCaseWithDefaultValues.toCode());
+    TestCase testCaseWithDefaultValues = buildTestCaseWithDefaultValues(staticEntryMethod);
 
-		calculateFitnessAndSortPopulation();
-		double fitnessAfterAddingDefaultTest = this.getBestIndividual().getFitness();
-		logger.debug("Fitness after adding default test case: " + fitnessAfterAddingDefaultTest);
+    getBestIndividual().addTest(testCaseWithDefaultValues);
+    generatedTests.add(testCaseWithDefaultValues);
 
-		if (fitnessAfterAddingDefaultTest == 0) {
-			logger.debug("No more DSE test generation since fitness is 0");
-			return;
-		}
+    logger.debug(
+        "Created new default test case with default values:" + testCaseWithDefaultValues.toCode());
 
-		Map<Set<Constraint<?>>, SolverResult> queryCache = new HashMap<Set<Constraint<?>>, SolverResult>();
-		HashSet<Set<Constraint<?>>> collectedPathConditions = new HashSet<Set<Constraint<?>>>();
+    calculateFitnessAndSortPopulation();
+    double fitnessAfterAddingDefaultTest = this.getBestIndividual().getFitness();
+    logger.debug("Fitness after adding default test case: " + fitnessAfterAddingDefaultTest);
 
-		for (int currentTestIndex = 0; currentTestIndex < generatedTestCases.size(); currentTestIndex++) {
+    if (fitnessAfterAddingDefaultTest == 0) {
+      logger.debug("No more DSE test generation since fitness is 0");
+      return;
+    }
 
-			TestCase currentTestCase = generatedTestCases.get(currentTestIndex);
+    HashSet<Set<Constraint<?>>> pathConditions = new HashSet<Set<Constraint<?>>>();
 
-			if (this.isFinished()) {
-				logger.debug("DSE test generation met a stopping condition. Exiting with " + generatedTestCases.size()
-						+ " generated test cases for method " + staticEntryMethod.getName());
-				return;
-			}
+    for (int currentTestIndex = 0; currentTestIndex < generatedTests
+        .size(); currentTestIndex++) {
 
-			logger.debug("Starting concolic execution of test case: " + currentTestCase.toCode());
+      TestCase currentTestCase = generatedTests.get(currentTestIndex);
 
-			TestCase clonedTestCase = currentTestCase.clone();
-			List<BranchCondition> collectedBranchConditions = ConcolicExecution
-					.executeConcolic((DefaultTestCase) clonedTestCase);
+      if (this.isFinished()) {
+        logger.debug("DSE test generation met a stopping condition. Exiting with "
+            + generatedTests.size() + " generated test cases for method "
+            + staticEntryMethod.getName());
+        return;
+      }
 
-			final PathCondition collectedPathCondition = new PathCondition(collectedBranchConditions);
-			logger.debug("Path condition collected with : " + collectedPathCondition.size() + " branches");
+      logger.debug("Starting concolic execution of test case: " + currentTestCase.toCode());
 
-			Set<Constraint<?>> constraintsSet = new HashSet<Constraint<?>>(collectedPathCondition.getConstraints());
-			collectedPathConditions.add(constraintsSet);
-			logger.debug("Number of stored path condition: " + collectedPathConditions.size());
+      TestCase clonedTestCase = currentTestCase.clone();
 
-			for (int i = collectedPathCondition.size() - 1; i >= 0; i--) {
-				logger.debug("negating index " + i + " of path condition");
+      final PathCondition pathCondition =
+          ConcolicExecution.executeConcolic((DefaultTestCase) clonedTestCase);
+      logger
+          .debug("Path condition collected with : " + pathCondition.size() + " branches");
 
-				List<Constraint<?>> query = DSETestGenerator.buildQuery(collectedPathCondition, i);
+      Set<Constraint<?>> constraintsSet = canonicalize(pathCondition.getConstraints());
+      pathConditions.add(constraintsSet);
+      logger.debug("Number of stored path condition: " + pathConditions.size());
 
-				Set<Constraint<?>> constraintSet = new HashSet<Constraint<?>>(query);
+      for (int i = pathCondition.size() - 1; i >= 0; i--) {
+        logger.debug("negating index " + i + " of path condition");
 
-				if (queryCache.containsKey(constraintSet)) {
-					logger.debug("skipping solving of current query since it is in the query cache");
-					continue;
-				}
+        List<Constraint<?>> query = DSETestGenerator.buildQuery(pathCondition, i);
 
-				if (collectedPathConditions.contains(constraintSet)) {
-					logger.debug("skipping solving of current query because of existing path condition");
-					continue;
+        Set<Constraint<?>> constraintSet = canonicalize(query);
 
-				}
+        if (queryCache.containsKey(constraintSet)) {
+          logger.debug("skipping solving of current query since it is in the query cache");
+          continue;
+        }
 
-				if (isSubSetOf(constraintSet, collectedPathConditions)) {
-					logger.debug(
-							"skipping solving of current query because it is satisfiable and solved by previous path condition");
-					continue;
-				}
+        if (isSubSetOf(constraintSet, queryCache.keySet())) {
+          logger.debug(
+              "skipping solving of current query because it is satisfiable and solved by previous path condition");
+          continue;
+        }
 
-				if (this.isFinished()) {
-					logger.debug(
-							"DSE test generation met a stopping condition. Exiting with " + generatedTestCases.size()
-									+ " generated test cases for method " + staticEntryMethod.getName());
-					return;
-				}
+        if (pathConditions.contains(constraintSet)) {
+          logger.debug("skipping solving of current query because of existing path condition");
+          continue;
 
-				logger.debug("Solving query with  " + query.size() + " constraints");
-				SolverResult result = DSETestGenerator.solve(query);
+        }
 
-				queryCache.put(constraintSet, result);
-				logger.debug("Number of stored entries in query cache : " + queryCache.keySet().size());
+        if (isSubSetOf(constraintSet, pathConditions)) {
+          logger.debug(
+              "skipping solving of current query because it is satisfiable and solved by previous path condition");
+          continue;
+        }
 
-				if (result == null) {
-					logger.debug("Solver outcome is null (probably failure/unknown");
-				} else if (result.isSAT()) {
-					logger.debug("query is SAT (solution found)");
-					Map<String, Object> solution = result.getModel();
-					logger.debug("solver found solution " + solution.toString());
+        if (this.isFinished()) {
+          logger.debug("DSE test generation met a stopping condition. Exiting with "
+              + generatedTests.size() + " generated test cases for method "
+              + staticEntryMethod.getName());
+          return;
+        }
 
-					TestCase newTest = DSETestGenerator.updateTest(currentTestCase, solution);
-					logger.debug("Created new test case from SAT solution:" + newTest.toCode());
-					generatedTestCases.add(newTest);
+        logger.debug("Solving query with  " + query.size() + " constraints");
 
-					double fitnessBeforeAddingNewTest = this.getBestIndividual().getFitness();
-					logger.debug("Fitness before adding new test" + fitnessBeforeAddingNewTest);
+        List<Constraint<?>> varBounds = createVarBounds(query);
+        query.addAll(varBounds);
 
-					getBestIndividual().addTest(newTest);
+        SolverResult result = DSETestGenerator.solve(query);
 
-					calculateFitness(getBestIndividual());
+        queryCache.put(constraintSet, result);
+        logger.debug("Number of stored entries in query cache : " + queryCache.keySet().size());
 
-					double fitnessAfterAddingNewTest = this.getBestIndividual().getFitness();
-					logger.debug("Fitness after adding new test " + fitnessAfterAddingNewTest);
+        if (result == null) {
+          logger.debug("Solver outcome is null (probably failure/unknown");
+        } else if (result.isSAT()) {
+          logger.debug("query is SAT (solution found)");
+          Map<String, Object> solution = result.getModel();
+          logger.debug("solver found solution " + solution.toString());
 
-					this.notifyIteration();
-					
-					if (fitnessAfterAddingNewTest == 0) {
-						logger.debug("No more DSE test generation since fitness is 0");
-						return;
-					}
+          TestCase newTest = DSETestGenerator.updateTest(currentTestCase, solution);
+          logger.debug("Created new test case from SAT solution:" + newTest.toCode());
+          generatedTests.add(newTest);
 
-				} else {
-					assert (result.isUNSAT());
-					logger.debug("query is UNSAT (no solution found)");
-				}
-			}
-		}
+          double fitnessBeforeAddingNewTest = this.getBestIndividual().getFitness();
+          logger.debug("Fitness before adding new test" + fitnessBeforeAddingNewTest);
 
-		logger.debug("DSE test generation finished for method " + staticEntryMethod.getName() + ". Exiting with "
-				+ generatedTestCases.size() + " generated test cases");
-		return;
-	}
+          getBestIndividual().addTest(newTest);
 
-	/**
-	 * Returns true if the constraints in the query are a subset of any of the
-	 * constraints in the set of queries
-	 * 
-	 * @param query
-	 * @param queries
-	 * @return
-	 */
-	private static boolean isSubSetOf(Set<Constraint<?>> query, HashSet<Set<Constraint<?>>> queries) {
-		for (Set<Constraint<?>> pathCondition : queries) {
-			if (pathCondition.containsAll(query)) {
-				return true;
-			}
-		}
-		return false;
-	}
+          calculateFitness(getBestIndividual());
 
-	/**
-	 * Builds a default test case for a static target method
-	 * 
-	 * @param targetStaticMethod
-	 * @return
-	 */
-	private static DefaultTestCase buildTestCaseWithDefaultValues(Method targetStaticMethod) {
-		TestCaseBuilder testCaseBuilder = new TestCaseBuilder();
+          double fitnessAfterAddingNewTest = this.getBestIndividual().getFitness();
+          logger.debug("Fitness after adding new test " + fitnessAfterAddingNewTest);
 
-		Type[] argumentTypes = Type.getArgumentTypes(targetStaticMethod);
+          this.notifyIteration();
 
-		ArrayList<VariableReference> arguments = new ArrayList<VariableReference>();
-		for (Type argumentType : argumentTypes) {
-			switch (argumentType.getSort()) {
-			case Type.INT: {
-				VariableReference variableReference = testCaseBuilder.appendIntPrimitive(0);
-				arguments.add(variableReference);
-				break;
-			}
-			default: {
-				throw new UnsupportedOperationException();
-			}
-			}
-		}
-		testCaseBuilder.appendMethod(targetStaticMethod, arguments.toArray(new VariableReference[] {}));
-		DefaultTestCase testCase = testCaseBuilder.getDefaultTestCase();
-		return testCase;
-	}
+          if (fitnessAfterAddingNewTest == 0) {
+            logger.debug("No more DSE test generation since fitness is 0");
+            return;
+          }
 
-	/**
-	 * Creates a DSE algorithm for test generation.
-	 */
-	public DSEAlgorithm() {
-		super(null);
-	}
+        } else {
+          assert (result.isUNSAT());
+          logger.debug("query is UNSAT (no solution found)");
+        }
+      }
+    }
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 964984026539409121L;
+    logger.debug("DSE test generation finished for method " + staticEntryMethod.getName()
+        + ". Exiting with " + generatedTests.size() + " generated test cases");
+    return;
+  }
 
-	/**
-	 * This algorithm does not evolve populations
-	 */
-	@Override
-	protected void evolve() {
-		// skip
-	}
+  protected static HashSet<Constraint<?>> canonicalize(List<Constraint<?>> query) {
+    return new HashSet<Constraint<?>>(query);
+  }
 
-	/**
-	 * The population is initialized with an empty test suite
-	 */
-	@Override
-	public void initializePopulation() {
-		TestSuiteChromosome individual = new TestSuiteChromosome();
-		population.clear();
-		population.add(individual);
-		calculateFitness(individual);
-	}
+  private static List<Constraint<?>> createVarBounds(List<Constraint<?>> query) {
 
-	/**
-	 * Returns a set with the static methods of a class
-	 * 
-	 * @param targetClass
-	 *            a class instance
-	 * @return
-	 */
-	private static List<Method> getTargetStaticMethods(Class<?> targetClass) {
-		Method[] declaredMethods = targetClass.getDeclaredMethods();
-		List<Method> targetStaticMethods = new LinkedList<Method>();
-		for (Method m : declaredMethods) {
+    Set<Variable<?>> variables = new HashSet<Variable<?>>();
+    for (Constraint<?> constraint : query) {
+      variables.addAll(constraint.getVariables());
+    }
 
-			if (!Modifier.isStatic(m.getModifiers())) {
-				continue;
-			}
+    List<Constraint<?>> boundsForVariables = new ArrayList<Constraint<?>>();
+    for (Variable<?> variable : variables) {
+      if (variable instanceof IntegerVariable) {
+        IntegerVariable integerVariable = (IntegerVariable) variable;
+        Long minValue = integerVariable.getMinValue();
+        Long maxValue = integerVariable.getMaxValue();
+        if (maxValue == Long.MAX_VALUE && minValue == Long.MIN_VALUE) {
+          // skip constraints for Long variables
+          continue;
+        }
+        IntegerConstant minValueExpr = ExpressionFactory.buildNewIntegerConstant(minValue);
+        IntegerConstant maxValueExpr = ExpressionFactory.buildNewIntegerConstant(maxValue);
+        IntegerConstraint minValueConstraint = ConstraintFactory.gte(integerVariable, minValueExpr);
+        IntegerConstraint maxValueConstraint = ConstraintFactory.lte(integerVariable, maxValueExpr);
+        boundsForVariables.add(minValueConstraint);
+        boundsForVariables.add(maxValueConstraint);
 
-			if (Modifier.isPrivate(m.getModifiers())) {
-				continue;
-			}
+      } else if (variable instanceof RealVariable) {
+        // skip
+      } else if (variable instanceof StringVariable) {
+        // skip
+      } else {
+        throw new UnsupportedOperationException(
+            "Unknown variable type " + variable.getClass().getName());
+      }
+    }
 
-			if (m.getName().equals(ClassResetter.STATIC_RESET)) {
-				continue;
-			}
+    return boundsForVariables;
+  }
 
-			targetStaticMethods.add(m);
-		}
-		return targetStaticMethods;
-	}
+  /**
+   * Returns true if the constraints in the query are a subset of any of the constraints in the set
+   * of queries
+   * 
+   * @param query
+   * @param queries
+   * @return
+   */
+  private static boolean isSubSetOf(Set<Constraint<?>> query,
+      Collection<Set<Constraint<?>>> queries) {
+    for (Set<Constraint<?>> pathCondition : queries) {
+      if (pathCondition.containsAll(query)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-	/**
-	 * Applies the DSE test generation using the initial population as the initial
-	 * test cases
-	 */
-	@Override
-	public void generateSolution() {
-		this.notifySearchStarted();
-		this.initializePopulation();
+  /**
+   * Builds a default test case for a static target method
+   * 
+   * @param targetStaticMethod
+   * @return
+   */
+  private static DefaultTestCase buildTestCaseWithDefaultValues(Method targetStaticMethod) {
+    TestCaseBuilder testCaseBuilder = new TestCaseBuilder();
 
-		final Class<?> targetClass = Properties.getTargetClassAndDontInitialise();
+    Type[] argumentTypes = Type.getArgumentTypes(targetStaticMethod);
+    Class<?>[] argumentClasses = targetStaticMethod.getParameterTypes();
 
-		List<Method> targetStaticMethods = getTargetStaticMethods(targetClass);
-		Collections.sort(targetStaticMethods, new MethodComparator());
-		logger.debug("Found " + targetStaticMethods.size() + " as entry points for DSE");
+    ArrayList<VariableReference> arguments = new ArrayList<VariableReference>();
+    for (int i = 0; i < argumentTypes.length; i++) {
 
-		for (Method entryMethod : targetStaticMethods) {
+      Type argumentType = argumentTypes[i];
+      Class<?> argumentClass = argumentClasses[i];
 
-			if (this.isFinished()) {
-				logger.debug("A stoping condition was met. No more tests can be generated using DSE.");
-				break;
-			}
+      switch (argumentType.getSort()) {
+        case Type.BOOLEAN: {
+          VariableReference booleanVariable = testCaseBuilder.appendBooleanPrimitive(false);
+          arguments.add(booleanVariable);
+          break;
+        }
+        case Type.BYTE: {
+          VariableReference byteVariable = testCaseBuilder.appendBytePrimitive((byte) 0);
+          arguments.add(byteVariable);
+          break;
+        }
+        case Type.CHAR: {
+          VariableReference charVariable = testCaseBuilder.appendCharPrimitive((char) 0);
+          arguments.add(charVariable);
+          break;
+        }
+        case Type.SHORT: {
+          VariableReference shortVariable = testCaseBuilder.appendShortPrimitive((short) 0);
+          arguments.add(shortVariable);
+          break;
+        }
+        case Type.INT: {
+          VariableReference intVariable = testCaseBuilder.appendIntPrimitive(0);
+          arguments.add(intVariable);
+          break;
+        }
+        case Type.LONG: {
+          VariableReference longVariable = testCaseBuilder.appendLongPrimitive(0L);
+          arguments.add(longVariable);
+          break;
+        }
+        case Type.FLOAT: {
+          VariableReference floatVariable = testCaseBuilder.appendFloatPrimitive((float) 0.0);
+          arguments.add(floatVariable);
+          break;
+        }
+        case Type.DOUBLE: {
+          VariableReference doubleVariable = testCaseBuilder.appendDoublePrimitive(0.0);
+          arguments.add(doubleVariable);
+          break;
+        }
+        case Type.ARRAY: {
+          VariableReference arrayVariable = testCaseBuilder.appendArrayStmt(argumentClass, 0);
+          arguments.add(arrayVariable);
+          break;
+        }
+        case Type.OBJECT: {
+          if (argumentClass.equals(String.class)) {
+            VariableReference stringVariable = testCaseBuilder.appendStringPrimitive("");
+            arguments.add(stringVariable);
+          } else {
+            VariableReference objectVariable = testCaseBuilder.appendNull(argumentClass);
+            arguments.add(objectVariable);
+          }
+          break;
+        }
+        default: {
+          throw new UnsupportedOperationException();
+        }
+      }
+    }
 
-			if (getBestIndividual().getFitness() == 0) {
-				logger.debug("Best individual reached zero fitness");
-				break;
-			}
+    testCaseBuilder.appendMethod(null, targetStaticMethod,
+        arguments.toArray(new VariableReference[] {}));
+    DefaultTestCase testCase = testCaseBuilder.getDefaultTestCase();
 
-			logger.debug("Generating tests for entry method" + entryMethod.getName());
-			int testCaseCount = getBestIndividual().getTests().size();
-			generateTestCasesAndAppendToBestIndividual(entryMethod);
-			int numOfGeneratedTestCases = getBestIndividual().getTests().size() - testCaseCount;
-			logger.debug(numOfGeneratedTestCases + " tests were generated for entry method " + entryMethod.getName());
+    return testCase;
+  }
 
-		}
+  /**
+   * Creates a DSE algorithm for test generation.
+   */
+  public DSEAlgorithm() {
+    super(null);
+  }
 
-		this.updateFitnessFunctionsAndValues();
-		this.notifySearchFinished();
-	}
+  /**
+   * 
+   */
+  private static final long serialVersionUID = 964984026539409121L;
 
-	/**
-	 * Returns the fitness value for the criteria of branch coverage
-	 * 
-	 * @param bestIndividual
-	 * @return
-	 */
-	private double computeBranchCoverageFitness(TestSuiteChromosome bestIndividual) {
-		BranchCoverageSuiteFitness ff = new BranchCoverageSuiteFitness();
-		double branchCoverageFitness = ff.getFitness(bestIndividual);
-		return branchCoverageFitness;
-	}
+  /**
+   * This algorithm does not evolve populations
+   */
+  @Override
+  protected void evolve() {
+    // skip
+  }
+
+  /**
+   * The population is initialized with an empty test suite
+   */
+  @Override
+  public void initializePopulation() {
+    TestSuiteChromosome individual = new TestSuiteChromosome();
+    population.clear();
+    population.add(individual);
+    calculateFitness(individual);
+  }
+
+  /**
+   * Returns a set with the static methods of a class
+   * 
+   * @param targetClass a class instance
+   * @return
+   */
+  private static List<Method> getTargetStaticMethods(Class<?> targetClass) {
+    Method[] declaredMethods = targetClass.getDeclaredMethods();
+    List<Method> targetStaticMethods = new LinkedList<Method>();
+    for (Method m : declaredMethods) {
+
+      if (!Modifier.isStatic(m.getModifiers())) {
+        continue;
+      }
+
+      if (Modifier.isPrivate(m.getModifiers())) {
+        continue;
+      }
+
+      if (m.getName().equals(ClassResetter.STATIC_RESET)) {
+        continue;
+      }
+
+      targetStaticMethods.add(m);
+    }
+    return targetStaticMethods;
+  }
+
+  /**
+   * Applies the DSE test generation using the initial population as the initial test cases
+   */
+  @Override
+  public void generateSolution() {
+    this.notifySearchStarted();
+    this.initializePopulation();
+
+    final Class<?> targetClass = Properties.getTargetClassAndDontInitialise();
+
+    List<Method> targetStaticMethods = getTargetStaticMethods(targetClass);
+    Collections.sort(targetStaticMethods, new MethodComparator());
+    logger.debug("Found " + targetStaticMethods.size() + " as entry points for DSE");
+
+    for (Method entryMethod : targetStaticMethods) {
+
+      if (this.isFinished()) {
+        logger.debug("A stoping condition was met. No more tests can be generated using DSE.");
+        break;
+      }
+
+      if (getBestIndividual().getFitness() == 0) {
+        logger.debug("Best individual reached zero fitness");
+        break;
+      }
+
+      logger.debug("Generating tests for entry method" + entryMethod.getName());
+      int testCaseCount = getBestIndividual().getTests().size();
+      generateTestCasesAndAppendToBestIndividual(entryMethod);
+      int numOfGeneratedTestCases = getBestIndividual().getTests().size() - testCaseCount;
+      logger.debug(numOfGeneratedTestCases + " tests were generated for entry method "
+          + entryMethod.getName());
+
+    }
+
+    this.updateFitnessFunctionsAndValues();
+    this.notifySearchFinished();
+  }
 
 }
