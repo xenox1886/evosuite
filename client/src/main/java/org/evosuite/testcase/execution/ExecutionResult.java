@@ -28,6 +28,7 @@ import org.evosuite.testcase.statements.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.util.*;
 
 public class ExecutionResult implements Cloneable {
@@ -92,8 +93,8 @@ public class ExecutionResult implements Cloneable {
      */
     public double regressionObjectDistance = 0;
 
-    private String standardOut;
-    private String standardErr;
+    private ByteArrayOutputStream standardOut;
+    private ByteArrayOutputStream standardErr;
 
     /**
      * @return the executedStatements
@@ -488,19 +489,19 @@ public class ExecutionResult implements Cloneable {
         this.wasAnyPropertyWritten = wasAnyPropertyWritten;
     }
 
-    public String getStandardOut() {
+    public ByteArrayOutputStream getStandardOut() {
         return standardOut;
     }
 
-    public void setStandardOut(String standardOut) {
+    public void setStandardOut(ByteArrayOutputStream standardOut) {
         this.standardOut = standardOut;
     }
 
-    public String getStandardErr() {
+    public ByteArrayOutputStream getStandardErr() {
         return standardErr;
     }
 
-    public void setStandardErr(String standardErr) {
+    public void setStandardErr(ByteArrayOutputStream standardErr) {
         this.standardErr = standardErr;
     }
 

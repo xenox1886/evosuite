@@ -254,7 +254,7 @@ public class TestRunnable implements InterfaceTestRunnable {
             logger.error("Suppressed/ignored exception during test case execution on class "
                     + Properties.TARGET_CLASS + ": " + e.getMessage(), e);
         } finally {
-            if (!Properties.PRINT_TO_SYSTEM) {
+            if (!Properties.PRINT_TO_SYSTEM && !Properties.PRINT_TO_RESULT) {
                 LoggingUtils.restorePreviousOutAndErrStream();
             }
             if (Properties.REPLACE_CALLS) {
@@ -273,10 +273,10 @@ public class TestRunnable implements InterfaceTestRunnable {
         tempStdErr.flush();
         if (Properties.PRINT_TO_RESULT) {
             if (stdOutStream.size() > 0) {
-                result.setStandardOut(new String(stdOutStream.toByteArray(), StandardCharsets.US_ASCII));
+                result.setStandardOut(stdOutStream);
             }
             if (stdErrStream.size() > 0) {
-                result.setStandardErr(new String(stdErrStream.toByteArray(), StandardCharsets.US_ASCII));
+                result.setStandardErr(stdErrStream);
             }
 
             System.setOut(oldOut);
