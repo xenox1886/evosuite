@@ -1237,6 +1237,9 @@ public class Properties {
         COVERAGE, MIO
     }
 
+    @Parameter(key = "excluded_classes", group = "Test Creation", description = "Fully qualified class names which should be excluded from test gen (separate by :)")
+    public static String EXCLUDED_CLASSES = null;
+
     /**
      * Constant <code>ARCHIVE_TYPE=COVERAGE</code>
      */
