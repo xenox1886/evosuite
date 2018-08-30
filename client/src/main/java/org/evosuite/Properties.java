@@ -509,6 +509,10 @@ public class Properties {
     @DoubleValue(min = 0.0, max = 1.0)
     public static double P_STATEMENT_INSERTION = 0.5;
 
+    @Parameter(key = "p_statement_multiplying", group = "Search Algorithm", description = "Initial probability of multiplying a new statement in a test case")
+    @DoubleValue(min = 0.0, max = 1.0)
+    public static double P_STATEMENT_MULTIPLYING = 0.5;
+
     @Parameter(key = "p_change_parameter", group = "Search Algorithm", description = "Probability of replacing parameters when mutating a method or constructor statementa in a test case")
     @DoubleValue(min = 0.0, max = 1.0)
     public static double P_CHANGE_PARAMETER = 0.1;
@@ -524,6 +528,10 @@ public class Properties {
     @Parameter(key = "p_test_insert", group = "Search Algorithm", description = "Probability of inserting new statements during mutation")
     @DoubleValue(min = 0.0, max = 1.0)
     public static double P_TEST_INSERT = 1d / 3d;
+
+    @Parameter(key = "p_test_multiply", group = "Search Algorithm", description = "Factor of inserts that will be multiplyings")
+    @DoubleValue(min = 0.0, max = 1.0)
+    public static double P_TEST_MULTIPLY = 0d;
 
     @Parameter(key = "kincompensation", group = "Search Algorithm", description = "Penalty for duplicate individuals")
     @DoubleValue(min = 0.0, max = 1.0)
