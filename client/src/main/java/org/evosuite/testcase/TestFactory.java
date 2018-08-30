@@ -40,7 +40,6 @@ import org.evosuite.setup.*;
 import org.evosuite.testcase.jee.InjectionSupport;
 import org.evosuite.testcase.jee.InstanceOnlyOnce;
 import org.evosuite.testcase.jee.ServletSupport;
-import org.evosuite.testcase.mutation.DuplicationInsertion;
 import org.evosuite.testcase.mutation.RandomInsertion;
 import org.evosuite.testcase.statements.*;
 import org.evosuite.testcase.statements.environment.EnvironmentStatements;
