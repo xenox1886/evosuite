@@ -529,9 +529,16 @@ public class Properties {
     @DoubleValue(min = 0.0, max = 1.0)
     public static double P_TEST_INSERT = 1d / 3d;
 
-    @Parameter(key = "p_test_multiply", group = "Search Algorithm", description = "Factor of inserts that will be multiplyings")
+    @Parameter(key = "p_test_multiply", group = "Search Algorithm", description = "Probability of multiplying statements during mutation")
     @DoubleValue(min = 0.0, max = 1.0)
     public static double P_TEST_MULTIPLY = 0d;
+
+    @Parameter(key = "p_multiplication_count", group = "Search Algorithm", description = "The number of statements that will be added if multiplying is chosen")
+    @IntValue(min = 0, max = 1000)
+    public static int MULTIPLICATION_COUNT = 0;
+
+    @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
+    public static boolean MULTIPLY_FIXED = false;
 
     @Parameter(key = "kincompensation", group = "Search Algorithm", description = "Penalty for duplicate individuals")
     @DoubleValue(min = 0.0, max = 1.0)
@@ -736,6 +743,15 @@ public class Properties {
 
     @Parameter(key = "track_diversity", group = "Search Algorithm", description = "Track population diversity")
     public static boolean TRACK_DIVERSITY = false;
+
+    @Parameter(key = "execute_reference", group = "Search Algorithm", description = "If the reference should be executed along side the generated input")
+    public static boolean EXECUTE_REFERENCE = false;
+
+    @Parameter(key = "reference_class", group = "Search Algorithm", description = "The class of the reference class to be executed if the flag is set")
+    public static String REFERENCE_CLASS = null;
+
+    @Parameter(key = "reference_classpath", group = "Search Algorithm", description = "The classpath for the reference class to be executed if the flag is set")
+    public static String REFERENCE_CLASSPATH = null;
 
     @Parameter(key = "analysis_criteria", group = "Output", description = "List of criteria which should be measured on the completed test suite")
     public static String ANALYSIS_CRITERIA = "";

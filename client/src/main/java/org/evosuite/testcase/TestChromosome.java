@@ -367,16 +367,16 @@ public class TestChromosome extends ExecutableChromosome {
 
         // Insert
         if (Randomness.nextDouble() <= Properties.P_TEST_INSERT) {
-            if (Randomness.nextDouble() <= Properties.P_TEST_MULTIPLY) {    //do multiplying
-                logger.debug("Mutation: multiply");
-                if (mutationMultiply()) {
-                    changed = true;
-                }
-            } else {    //do regular insertion
-                logger.debug("Mutation: insert");
-                if (mutationInsert()) {
-                    changed = true;
-                }
+            logger.debug("Mutation: insert");
+            if (mutationInsert()) {
+                changed = true;
+            }
+        }
+
+        if (Randomness.nextDouble() <= Properties.P_TEST_MULTIPLY) {    //do multiplying
+            logger.debug("Mutation: multiply");
+            if (mutationMultiply()) {
+                changed = true;
             }
         }
 
@@ -623,9 +623,6 @@ public class TestChromosome extends ExecutableChromosome {
      * @return
      */
     private boolean mutationMultiply() {
-        boolean changed = false;
-        final double ALPHA = Properties.P_STATEMENT_MULTIPLYING;
-        int count = 0;
         TestFactory testFactory = TestFactory.getInstance();
 
         Map.Entry<Integer, Statement> s = testFactory.getRandomDuplicatableStatement(test, getLastMutatableStatement());
@@ -639,7 +636,51 @@ public class TestChromosome extends ExecutableChromosome {
             return false;
         }
 
+        int count;
+        if (Properties.MULTIPLY_FIXED) {
+            count = multiplyFixed(s);
+        } else {
+            count = multiplyWithDecreasingProbability(s);
+        }
+        return count > 0;
+    }
+
+    /**
+     * Multiply a statement a fixed number of times
+     *
+     * @param s the statement and its position
+     * @return the number of times it was multiplied
+     */
+    private int multiplyFixed(Map.Entry<Integer, Statement> s) {
+        int position = s.getKey();
+        //multiply statement as many times as declared in the properties
+        int count = 0;
+        while (count < Properties.MULTIPLICATION_COUNT
+                && (!Properties.CHECK_MAX_LENGTH || size() < Properties.CHROMOSOME_LENGTH)) {
+
+            count++;
+            Statement toInsert = s.getValue().clone(test);
+            test.addStatement(toInsert, position);
+
+            mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
+                    TestMutationHistoryEntry.TestMutation.INSERTION,
+                    test.getStatement(position)));
+
+        }
+        return count;
+    }
+
+    /**
+     * Multiply a statement with exponentially decreasing probability
+     *
+     * @param s the statement and its position
+     * @return the number of times it was multiplied
+     */
+    private int multiplyWithDecreasingProbability(Map.Entry<Integer, Statement> s) {
         //multiply statement with decreasing probability
+        int position = s.getKey();
+        int count = 0;
+        final double ALPHA = Properties.P_STATEMENT_MULTIPLYING;
         while (Randomness.nextDouble() <= Math.pow(ALPHA, count)
                 && (!Properties.CHECK_MAX_LENGTH || size() < Properties.CHROMOSOME_LENGTH)) {
 
@@ -647,13 +688,12 @@ public class TestChromosome extends ExecutableChromosome {
             Statement toInsert = s.getValue().clone(test);
             test.addStatement(toInsert, position);
 
-            changed = true;
             mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
                     TestMutationHistoryEntry.TestMutation.INSERTION,
                     test.getStatement(position)));
 
         }
-        return changed;
+        return count;
     }
 
     /**
