@@ -39,10 +39,7 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Central property repository. All global parameters of EvoSuite should be
@@ -539,6 +536,9 @@ public class Properties {
 
     @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
     public static boolean MULTIPLY_FIXED = false;
+
+    @Parameter(key = "unique_methods", group = "Search Algorithm", description = "Names of methods that can only be called once in each test (separated by :)")
+    public static String UNIQUE_METHODS = "";
 
     @Parameter(key = "kincompensation", group = "Search Algorithm", description = "Penalty for duplicate individuals")
     @DoubleValue(min = 0.0, max = 1.0)
@@ -2530,5 +2530,28 @@ public class Properties {
         return isRegression;
     }
 
+    private static final String UNIQUE_METHOD_NAME_SEPARATOR = ":";
+    private static Set<String> UNIQUE_METHOD_NAMES_CACHE;
+
+    /**
+     * Get a set of names of methods out of which, only one should occur mostly once in a test case.
+     * @return the set of names
+     */
+    public static synchronized Set<String> getUniqueMethodNames() {
+        if (UNIQUE_METHOD_NAMES_CACHE != null) {
+            return UNIQUE_METHOD_NAMES_CACHE;
+        }
+        Set<String> names = new LinkedHashSet<>();
+        if (UNIQUE_METHODS == null || UNIQUE_METHODS.trim().isEmpty()) {
+            UNIQUE_METHOD_NAMES_CACHE = names;
+            return names;
+        }
+
+        String[] splitNames = UNIQUE_METHODS.trim().split(UNIQUE_METHOD_NAME_SEPARATOR);
+        names.addAll(Arrays.asList(splitNames));
+
+        UNIQUE_METHOD_NAMES_CACHE = names;
+        return names;
+    }
 
 }

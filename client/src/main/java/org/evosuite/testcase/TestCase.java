@@ -515,5 +515,11 @@ public interface TestCase extends Iterable<Statement>, Cloneable, Listenable<Voi
 	 * @param exceptions a {@link java.util.Map} object.
 	 */
 	public String toCode(Map<Integer, Throwable> exceptions);
-	
+
+	/**
+	 * If this test case contains a method call that's supposed to be unique
+	 * (as defined in Properties.UNIQUE_METHODS)
+	 * @return if a unique method call is found
+	 */
+	public boolean hasUniqueMethodCall();
 }
