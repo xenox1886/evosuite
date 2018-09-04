@@ -1329,12 +1329,12 @@ public class TestCluster {
             }
         }
 
-        if (test.hasUniqueMethodCall()) {   //if there's already a unique method call, filter them out
+        /*if (test.hasUniqueMethodCall()) {   //if there's already a unique method call, filter them out
             candidateTestMethods = filterUniqueMethodCalls(candidateTestMethods);
             if (candidateTestMethods.isEmpty()) {
                 return null;
             }
-        }
+        }*/
 
 
         if (Properties.SORT_CALLS) {

@@ -2186,7 +2186,7 @@ public class TestFactory {
             }
             GenericAccessibleObject<?> o = TestCluster.getInstance().getRandomTestCall(test);
             if (o == null) {
-                logger.debug("Have no target methods to test");
+                logger.warn("Have no target methods to test");
                 return false;
             } else if (o.isConstructor()) {
 
