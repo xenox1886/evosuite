@@ -2554,10 +2554,23 @@ public class Properties {
         return ret;
     }
 
+    /**
+     * Check if a methodd is a unique method
+     *
+     * @param method the method to check
+     * @return if the method should be unique
+     */
     public static boolean isUniqueMethod(Method method) {
         return containsMethod(method, getUniqueMethods());
     }
 
+    /**
+     * Check if the method map contains a method
+     *
+     * @param m         the method to check
+     * @param methodMap the method
+     * @return if the map contains the method
+     */
     public static boolean containsMethod(Method m, Map<String, Set<String>> methodMap) {
         String className = m.getDeclaringClass().getName();
         if (methodMap.containsKey(className)) {
@@ -2580,6 +2593,12 @@ public class Properties {
 
     private static Map<String, Set<String>> UNIQUE_METHOD_NAMES_CACHE;  //needs a cache because gets called multiple times
 
+    /**
+     * Get a map from class names to a set of methods which should be unique.
+     * Use cached values if possible.
+     *
+     * @return the map built
+     */
     private static Map<String, Set<String>> getUniqueMethods() {
         if (UNIQUE_METHOD_NAMES_CACHE != null) {
             return UNIQUE_METHOD_NAMES_CACHE;
@@ -2590,6 +2609,13 @@ public class Properties {
         return ret;
     }
 
+    /**
+     * Get a map from class name to a set of methods from a set of methods strings,
+     * which are of the form classname>methodname
+     *
+     * @param methodStrings a set of method strings
+     * @return the map built
+     */
     private static Map<String, Set<String>> getMethodMap(Set<String> methodStrings) {
         Map<String, Set<String>> ret = new LinkedHashMap<>();
         for (String methodString : methodStrings) {
