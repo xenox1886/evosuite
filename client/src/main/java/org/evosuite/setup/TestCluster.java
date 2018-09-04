@@ -227,7 +227,7 @@ public class TestCluster {
                     if (Arrays.asList(genOwner.getGenericParameterTypes())
                             .stream().anyMatch(
                                     t -> t.equals(entry.getKey().getType()))
-                    ) {
+                            ) {
                         iter.remove();
                         break;
                     }
@@ -1247,12 +1247,11 @@ public class TestCluster {
 
     private List<GenericAccessibleObject<?>> filterUniqueMethodCalls(List<GenericAccessibleObject<?>> testMethods) {
         List<GenericAccessibleObject<?>> list = new ArrayList<>();
-        Set<String> uniqueMethodNames = Properties.getUniqueMethodNames();
         for (GenericAccessibleObject<?> call : testMethods) {
             if (call.isMethod()) {
                 GenericMethod genericMethod = (GenericMethod) call;
-                if (uniqueMethodNames.contains(genericMethod.getName())){
-                    continue;
+                if (Properties.isUniqueMethod(genericMethod.getMethod())) {
+                    continue;   //don't add unique methods
                 }
             }
             list.add(call);
@@ -1332,11 +1331,10 @@ public class TestCluster {
 
         if (test.hasUniqueMethodCall()) {   //if there's already a unique method call, filter them out
             candidateTestMethods = filterUniqueMethodCalls(candidateTestMethods);
-            if (candidateTestMethods.isEmpty()){
+            if (candidateTestMethods.isEmpty()) {
                 return null;
             }
         }
-
 
 
         if (Properties.SORT_CALLS) {

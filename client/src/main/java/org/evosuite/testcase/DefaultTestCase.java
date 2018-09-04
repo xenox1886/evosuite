@@ -1318,11 +1318,10 @@ public class DefaultTestCase implements TestCase, Serializable {
      */
     @Override
     public boolean hasUniqueMethodCall() {
-        Set<String> getUniqueMethodNames = Properties.getUniqueMethodNames();
         for (Statement statement : statements) {    //TODO not very efficient
             if (statement instanceof MethodStatement) {
                 MethodStatement methodStatement = (MethodStatement) statement;
-                if (getUniqueMethodNames.contains(methodStatement.getMethodName())) {
+                if (Properties.isUniqueMethod(methodStatement.getMethod().getMethod())) {
                     return true;
                 }
             }

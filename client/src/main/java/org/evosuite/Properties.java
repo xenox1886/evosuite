@@ -38,6 +38,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.*;
 
@@ -537,8 +538,11 @@ public class Properties {
     @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
     public static boolean MULTIPLY_FIXED = false;
 
-    @Parameter(key = "unique_methods", group = "Search Algorithm", description = "Names of methods that can only be called once in each test (separated by :)")
+    @Parameter(key = "unique_methods", group = "Search Algorithm", description = "Names of methods that can only be called once in each test. Format: 'classname>methodname:class2>method'")
     public static String UNIQUE_METHODS = "";
+
+    @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Names of methods that should be excluded.  Format: 'classname>methodname:class2>method'")
+    public static String EXCLUDED_METHODS = "";
 
     @Parameter(key = "kincompensation", group = "Search Algorithm", description = "Penalty for duplicate individuals")
     @DoubleValue(min = 0.0, max = 1.0)
@@ -2530,28 +2534,129 @@ public class Properties {
         return isRegression;
     }
 
-    private static final String UNIQUE_METHOD_NAME_SEPARATOR = ":";
-    private static Set<String> UNIQUE_METHOD_NAMES_CACHE;
+    public static final String CLASS_SEPARATOR = ":";
+    public static final String CLASS_METHOD_SEPARATOR = ">";
 
     /**
-     * Get a set of names of methods out of which, only one should occur mostly once in a test case.
-     * @return the set of names
+     * Get a set of classes to exclude
+     *
+     * @return a set of class names
      */
-    public static synchronized Set<String> getUniqueMethodNames() {
+    public static Set<String> getExcludedClasses() {
+        String in = EXCLUDED_CLASSES;
+        Set<String> ret = new LinkedHashSet<>();
+        in = in != null ? in.trim() : null;
+        if (in == null || in.isEmpty()) {
+            return ret;
+        }
+
+        ret.addAll(Arrays.asList(in.split(CLASS_SEPARATOR)));
+        return ret;
+    }
+
+    public static boolean isUniqueMethod(Method method) {
+        return containsMethod(method, getUniqueMethods());
+    }
+
+    public static boolean containsMethod(Method m, Map<String, Set<String>> methodMap) {
+        String className = m.getDeclaringClass().getName();
+        if (methodMap.containsKey(className)) {
+            if (methodMap.get(className).contains(m.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get a map of excluded method names
+     *
+     * @return a map from class names to a set of method names in this class
+     */
+    public static Map<String, Set<String>> getExcludedMethodMap() {
+        Set<String> excludedMethodStrings = parseMethodStrings(EXCLUDED_METHODS);
+        return getMethodMap(excludedMethodStrings);
+    }
+
+    private static Map<String, Set<String>> UNIQUE_METHOD_NAMES_CACHE;  //needs a cache because gets called multiple times
+
+    private static Map<String, Set<String>> getUniqueMethods() {
         if (UNIQUE_METHOD_NAMES_CACHE != null) {
             return UNIQUE_METHOD_NAMES_CACHE;
         }
-        Set<String> names = new LinkedHashSet<>();
-        if (UNIQUE_METHODS == null || UNIQUE_METHODS.trim().isEmpty()) {
-            UNIQUE_METHOD_NAMES_CACHE = names;
-            return names;
+        Set<String> uniqueMethodStrings = parseMethodStrings(UNIQUE_METHODS);
+        Map<String, Set<String>> ret = getMethodMap(uniqueMethodStrings);
+        UNIQUE_METHOD_NAMES_CACHE = ret;
+        return ret;
+    }
+
+    private static Map<String, Set<String>> getMethodMap(Set<String> methodStrings) {
+        Map<String, Set<String>> ret = new LinkedHashMap<>();
+        for (String methodString : methodStrings) {
+            String clazz = getClassFromMethodString(methodString);
+            String method = getMethodFromMethodString(methodString);
+
+            if (!ret.containsKey(clazz)) {
+                ret.put(clazz, new LinkedHashSet<>());
+            }
+
+            ret.get(clazz).add(method);
         }
 
-        String[] splitNames = UNIQUE_METHODS.trim().split(UNIQUE_METHOD_NAME_SEPARATOR);
-        names.addAll(Arrays.asList(splitNames));
+        return ret;
+    }
 
-        UNIQUE_METHOD_NAMES_CACHE = names;
-        return names;
+
+    /**
+     * From a string class>method get the class
+     *
+     * @param methodString the input string
+     * @return the class name
+     */
+    private static String getClassFromMethodString(String methodString) {
+        int sepInd = methodString.indexOf(CLASS_METHOD_SEPARATOR);
+        assert sepInd != -1;
+        assert sepInd == methodString.lastIndexOf(CLASS_METHOD_SEPARATOR);  //there must only be once
+
+        return methodString.substring(0, sepInd);
+    }
+
+
+    /**
+     * From a string class>method get the method
+     *
+     * @param methodString the input string
+     * @return the method name
+     */
+    private static String getMethodFromMethodString(String methodString) {
+        int sepInd = methodString.indexOf(CLASS_METHOD_SEPARATOR);
+        assert sepInd != -1;
+        assert sepInd == methodString.lastIndexOf(CLASS_METHOD_SEPARATOR);  //there must only be once
+
+        return methodString.substring(sepInd + CLASS_METHOD_SEPARATOR.length());
+    }
+
+    /**
+     * Parse method strings from excluded/unique methods to a set of strings representing the methods
+     *
+     * @return a set of methods, each in the format class>method
+     */
+    private static Set<String> parseMethodStrings(String in) {
+        Set<String> methods = new LinkedHashSet<>();
+        if (in == null || in.trim().isEmpty()) {
+            return methods;
+        }
+
+        String[] els = in.split(CLASS_SEPARATOR);
+
+        for (String el : els) {
+            if (el.contains(CLASS_METHOD_SEPARATOR)) {   //at least one >
+                if (el.indexOf(CLASS_METHOD_SEPARATOR) == el.lastIndexOf(CLASS_METHOD_SEPARATOR)) {   //only one >
+                    methods.add(el);
+                }
+            }
+        }
+        return methods;
     }
 
 }

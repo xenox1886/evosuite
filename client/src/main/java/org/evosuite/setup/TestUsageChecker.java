@@ -54,24 +54,15 @@ public class TestUsageChecker {
     private static Logger logger = LoggerFactory.getLogger(TestUsageChecker.class);
 
     private static final String EXCLUDED_CLASSES_SEPARATOR = ":";
-    private static Set<String> excludedClasses = parseExcluded(Properties.EXCLUDED_CLASSES);
+    private static Set<String> excludedClasses = Properties.getExcludedClasses();
+    private static Map<String, Set<String>> excludedMethods = Properties.getExcludedMethodMap();
 
-    private static Set<String> parseExcluded(String in) {
-        Set<String> ret = new LinkedHashSet<>();
-        in = in != null ? in.trim() : null;
-        if (in == null || in.isEmpty()) {
-            return ret;
-        }
-
-        ret.addAll(Arrays.asList(in.split(EXCLUDED_CLASSES_SEPARATOR)));
-        return ret;
-    }
 
     public static boolean canUse(Constructor<?> c) {
 
-		if (c.isSynthetic()) {
-			return false;
-		}
+        if (c.isSynthetic()) {
+            return false;
+        }
 
         // synthetic constructors are OK
         if (Modifier.isAbstract(c.getDeclaringClass().getModifiers())) {
@@ -394,6 +385,11 @@ public class TestUsageChecker {
         }
 
         if (m.getDeclaringClass().equals(java.lang.Thread.class)) {
+            return false;
+        }
+
+        //check if a method is explicitly excluded
+        if (Properties.containsMethod(m, excludedMethods)) {
             return false;
         }
 
