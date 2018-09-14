@@ -531,6 +531,10 @@ public class Properties {
     @DoubleValue(min = 0.0, max = 1.0)
     public static double P_TEST_MULTIPLY = 0d;
 
+    @Parameter(key = "p_test_duplicate", group = "Search Algorithm", description = "Probability of duplicate a statement during mutation")
+    @DoubleValue(min = 0.0, max = 1.0)
+    public static double P_TEST_DUPLICATE = 0d;
+
     @Parameter(key = "p_multiplication_count", group = "Search Algorithm", description = "The number of statements that will be added if multiplying is chosen")
     @IntValue(min = 0, max = 1000)
     public static int MULTIPLICATION_COUNT = 0;

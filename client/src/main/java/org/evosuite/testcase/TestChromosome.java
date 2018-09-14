@@ -373,9 +373,18 @@ public class TestChromosome extends ExecutableChromosome {
             }
         }
 
-        if (Randomness.nextDouble() <= Properties.P_TEST_MULTIPLY) {    //do multiplying
+        // Multiply
+        if (Randomness.nextDouble() <= Properties.P_TEST_MULTIPLY) {
             logger.debug("Mutation: multiply");
             if (mutationMultiply()) {
+                changed = true;
+            }
+        }
+
+        // Duplicate
+        if (Randomness.nextDouble() <= Properties.P_TEST_DUPLICATE) {
+            logger.debug("Mutation: duplicate");
+            if (mutationDuplicate()) {
                 changed = true;
             }
         }
@@ -618,6 +627,29 @@ public class TestChromosome extends ExecutableChromosome {
     }
 
     /**
+     * Duplicate a randomly chosen statement
+     *
+     * @return
+     */
+    private boolean mutationDuplicate() {
+        TestFactory testFactory = TestFactory.getInstance();
+        Map.Entry<Integer, Statement> s = testFactory.getRandomDuplicatableStatement(test, getLastMutatableStatement());
+
+        if (s == null) {    //no statement can be duplicated
+            return false;
+        }
+
+        int position = s.getKey();
+        if (position < 0 || position >= test.size()) {
+            return false;
+        }
+
+        int count = multiplyFixed(s, 1);    //duplication is the same as multiplying once
+
+        return count > 0;
+    }
+
+    /**
      * Multiply a randomly chosen statement
      *
      * @return
@@ -628,7 +660,7 @@ public class TestChromosome extends ExecutableChromosome {
         final double ALPHA = Properties.P_STATEMENT_MULTIPLYING; //0.5;
         Map.Entry<Integer, Statement> s = testFactory.getRandomDuplicatableStatement(test, getLastMutatableStatement());
 
-        if (s == null) {    //no statement can be duplicated
+        if (s == null) {    //no statement can be multiplied
             return false;
         }
 
@@ -654,7 +686,7 @@ public class TestChromosome extends ExecutableChromosome {
      * Multiply a statement a fixed number of times
      *
      * @param s the statement and its position
-     * @param n the number of times it should be multiplied
+     * @param n the number of times it should be multiplied (i.e. afterwards there are n+1 statements s)
      * @return the number of times it was multiplied
      */
     private int multiplyFixed(Map.Entry<Integer, Statement> s, int n) {
