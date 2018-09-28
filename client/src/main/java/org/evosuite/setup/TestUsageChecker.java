@@ -28,21 +28,13 @@ import org.evosuite.runtime.annotation.EvoSuiteExclude;
 import org.evosuite.runtime.classhandling.ClassResetter;
 import org.evosuite.runtime.mock.MockList;
 import org.evosuite.utils.LoggingUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.FileDescriptor;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.*;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -54,6 +46,7 @@ public class TestUsageChecker {
     private static Logger logger = LoggerFactory.getLogger(TestUsageChecker.class);
 
     private static final String EXCLUDED_CLASSES_SEPARATOR = ":";
+    private static Set<String> whitelistedPrefixes = Properties.getWhitelistedPrefixes();
     private static Set<String> excludedClasses = Properties.getExcludedClasses();
     private static Map<String, Set<String>> excludedMethods = Properties.getExcludedMethodMap();
 
@@ -160,9 +153,14 @@ public class TestUsageChecker {
             }
         }
 
+        if (isWhitelisted(c.getName())) {
+            return true;
+        }
+
         if (c.isAnonymousClass()) {
             return false;
         }
+
 
         if (c.getName().startsWith("junit")) {
             return false;
@@ -549,6 +547,21 @@ public class TestUsageChecker {
             }
         }
 
+        return false;
+    }
+
+    /**
+     * Check if a class name is explicitly whitelisted
+     *
+     * @param className
+     * @return
+     */
+    private static boolean isWhitelisted(String className) {
+        for (String prefix : whitelistedPrefixes) {
+            if (className.startsWith(prefix)) {
+                return true;
+            }
+        }
         return false;
     }
 

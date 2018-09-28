@@ -548,6 +548,9 @@ public class Properties {
     @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Names of methods that should be excluded.  Format: 'classname>methodname:class2>method'")
     public static String EXCLUDED_METHODS = "";
 
+    @Parameter(key = "whitelisted_prefixes", description = "Package prefixes separated by : which are explicitly allowed to be instrumented (Overwrite the resource excluded.classes)")
+    public static String WHITELISTED_PREFIXES = "";
+
     @Parameter(key = "kincompensation", group = "Search Algorithm", description = "Penalty for duplicate individuals")
     @DoubleValue(min = 0.0, max = 1.0)
     public static double KINCOMPENSATION = 1.0;
@@ -2547,7 +2550,26 @@ public class Properties {
      * @return a set of class names
      */
     public static Set<String> getExcludedClasses() {
-        String in = EXCLUDED_CLASSES;
+        return getClasspathElements(EXCLUDED_CLASSES);
+    }
+
+    /**
+     * Get a set of classes to exclude
+     *
+     * @return a set of class names
+     */
+    public static Set<String> getWhitelistedPrefixes() {
+        return getClasspathElements(WHITELISTED_PREFIXES);
+    }
+
+
+    /**
+     * Get a non-null set of elements which are separated by :
+     * @param classpathString the input string
+     * @return a non-null set of elements in the string
+     */
+    private static Set<String> getClasspathElements(String classpathString) {
+        String in = classpathString;
         Set<String> ret = new LinkedHashSet<>();
         in = in != null ? in.trim() : null;
         if (in == null || in.isEmpty()) {
@@ -2557,6 +2579,7 @@ public class Properties {
         ret.addAll(Arrays.asList(in.split(CLASS_SEPARATOR)));
         return ret;
     }
+
 
     /**
      * Check if a methodd is a unique method
