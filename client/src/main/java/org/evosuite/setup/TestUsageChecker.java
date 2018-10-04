@@ -386,11 +386,6 @@ public class TestUsageChecker {
             return false;
         }
 
-        //check if a method is explicitly excluded
-        if (Properties.containsMethod(m, excludedMethods)) {
-            return false;
-        }
-
         // Hashcode only if we need to cover it
         if (m.getName().equals("hashCode")) {
             final Class<?> targetClass = Properties.getTargetClassAndDontInitialise();
@@ -442,6 +437,11 @@ public class TestUsageChecker {
 			return false;
 		}
 		*/
+
+        //check if a method is explicitly excluded
+        if (Properties.containsMethod(m, excludedMethods)) {
+            return false;
+        }
 
         // If default or
         if (Modifier.isPublic(m.getModifiers())) {

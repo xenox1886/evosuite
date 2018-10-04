@@ -19,23 +19,6 @@
  */
 package org.evosuite.testcase;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.evosuite.Properties;
 import org.evosuite.assertion.Assertion;
 import org.evosuite.assertion.InspectorAssertion;
@@ -44,21 +27,28 @@ import org.evosuite.contracts.ContractViolation;
 import org.evosuite.ga.ConstructionFailedException;
 import org.evosuite.runtime.util.Inputs;
 import org.evosuite.setup.TestClusterUtils;
-import org.evosuite.testcase.statements.*;
-import org.evosuite.testcase.statements.environment.AccessedEnvironment;
 import org.evosuite.testcase.execution.CodeUnderTestException;
 import org.evosuite.testcase.execution.Scope;
+import org.evosuite.testcase.statements.*;
+import org.evosuite.testcase.statements.environment.AccessedEnvironment;
 import org.evosuite.testcase.variable.*;
-import org.evosuite.utils.generic.GenericClass;
-import org.evosuite.utils.generic.GenericField;
 import org.evosuite.utils.ListenableList;
 import org.evosuite.utils.Listener;
 import org.evosuite.utils.Randomness;
+import org.evosuite.utils.generic.GenericClass;
+import org.evosuite.utils.generic.GenericField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.googlecode.gentyref.GenericTypeReflector;
 import org.springframework.util.ClassUtils;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A test case is a list of statements
@@ -1317,11 +1307,11 @@ public class DefaultTestCase implements TestCase, Serializable {
      * {@inheritDoc}
      */
     @Override
-    public boolean hasUniqueMethodCall() {
+    public boolean hasMethodUnderTestCall() {
         for (Statement statement : statements) {    //TODO not very efficient
             if (statement instanceof MethodStatement) {
                 MethodStatement methodStatement = (MethodStatement) statement;
-                if (Properties.isUniqueMethod(methodStatement.getMethod().getMethod())) {
+                if (Properties.isMethodUnderTest(methodStatement.getMethod().getMethod())) {
                     return true;
                 }
             }

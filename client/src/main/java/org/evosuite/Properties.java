@@ -28,6 +28,7 @@ import org.evosuite.runtime.RuntimeSettings;
 import org.evosuite.runtime.sandbox.Sandbox;
 import org.evosuite.utils.FileIOUtils;
 import org.evosuite.utils.LoggingUtils;
+import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -542,11 +543,11 @@ public class Properties {
     @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
     public static boolean MULTIPLY_FIXED = false;
 
-    @Parameter(key = "unique_methods", group = "Search Algorithm", description = "Names of methods that can only be called once in each test. Format: 'classname>methodname:class2>method'")
-    public static String UNIQUE_METHODS = "";
-
-    @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Names of methods that should be excluded.  Format: 'classname>methodname:class2>method'")
+    @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Unique descriptors of methods that should be excluded.  Format: 'classname>methodname:class2>method'")
     public static String EXCLUDED_METHODS = "";
+
+    @Parameter(key = "method_under_test", group = "Search Algorithm", description = "The unique descriptor of the method under test. Can be empty if not applicable.")
+    public static String METHOD_UNDER_TEST = "";
 
     @Parameter(key = "whitelisted_prefixes", description = "Package prefixes separated by : which are explicitly allowed to be instrumented (Overwrite the resource excluded.classes)")
     public static String WHITELISTED_PREFIXES = "";
@@ -2565,6 +2566,7 @@ public class Properties {
 
     /**
      * Get a non-null set of elements which are separated by :
+     *
      * @param classpathString the input string
      * @return a non-null set of elements in the string
      */
@@ -2580,17 +2582,6 @@ public class Properties {
         return ret;
     }
 
-
-    /**
-     * Check if a methodd is a unique method
-     *
-     * @param method the method to check
-     * @return if the method should be unique
-     */
-    public static boolean isUniqueMethod(Method method) {
-        return containsMethod(method, getUniqueMethods());
-    }
-
     /**
      * Check if the method map contains a method
      *
@@ -2601,11 +2592,14 @@ public class Properties {
     public static boolean containsMethod(Method m, Map<String, Set<String>> methodMap) {
         String className = m.getDeclaringClass().getName();
         if (methodMap.containsKey(className)) {
-            if (methodMap.get(className).contains(m.getName())) {
-                return true;
-            }
+            String descriptor = getUniqueDescriptor(m);
+            return methodMap.get(className).contains(descriptor);
         }
         return false;
+    }
+
+    private static String getUniqueDescriptor(Method m) {
+        return m.getName() + Type.getMethodDescriptor(m);
     }
 
     /**
@@ -2618,22 +2612,16 @@ public class Properties {
         return getMethodMap(excludedMethodStrings);
     }
 
-    private static Map<String, Set<String>> UNIQUE_METHOD_NAMES_CACHE;  //needs a cache because gets called multiple times
 
-    /**
-     * Get a map from class names to a set of methods which should be unique.
-     * Use cached values if possible.
-     *
-     * @return the map built
-     */
-    private static Map<String, Set<String>> getUniqueMethods() {
-        if (UNIQUE_METHOD_NAMES_CACHE != null) {
-            return UNIQUE_METHOD_NAMES_CACHE;
+    public static boolean isMethodUnderTest(Method m) {
+        if (METHOD_UNDER_TEST == null || METHOD_UNDER_TEST.isEmpty()) {
+            return false;
         }
-        Set<String> uniqueMethodStrings = parseMethodStrings(UNIQUE_METHODS);
-        Map<String, Set<String>> ret = getMethodMap(uniqueMethodStrings);
-        UNIQUE_METHOD_NAMES_CACHE = ret;
-        return ret;
+        String[] split = METHOD_UNDER_TEST.split(Properties.CLASS_METHOD_SEPARATOR);
+        assert split.length == 2;
+        String descriptor = getUniqueDescriptor(m);
+        String className = m.getDeclaringClass().getName();
+        return split[0].equals(className) && split[1].equals(descriptor);
     }
 
     /**

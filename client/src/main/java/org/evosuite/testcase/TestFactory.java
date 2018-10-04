@@ -19,10 +19,8 @@
  */
 package org.evosuite.testcase;
 
-import java.lang.reflect.*;
-import java.util.*;
-import java.util.stream.Collectors;
-
+import com.googlecode.gentyref.CaptureType;
+import com.googlecode.gentyref.GenericTypeReflector;
 import org.apache.commons.lang3.ClassUtils;
 import org.evosuite.Properties;
 import org.evosuite.TestGenerationContext;
@@ -36,7 +34,9 @@ import org.evosuite.runtime.util.AtMostOnceLogger;
 import org.evosuite.runtime.util.Inputs;
 import org.evosuite.seeding.CastClassManager;
 import org.evosuite.seeding.ObjectPoolManager;
-import org.evosuite.setup.*;
+import org.evosuite.setup.TestCluster;
+import org.evosuite.setup.TestClusterGenerator;
+import org.evosuite.setup.TestUsageChecker;
 import org.evosuite.testcase.jee.InjectionSupport;
 import org.evosuite.testcase.jee.InstanceOnlyOnce;
 import org.evosuite.testcase.jee.ServletSupport;
@@ -47,20 +47,15 @@ import org.evosuite.testcase.statements.reflection.PrivateFieldStatement;
 import org.evosuite.testcase.statements.reflection.PrivateMethodStatement;
 import org.evosuite.testcase.statements.reflection.ReflectionFactory;
 import org.evosuite.testcase.variable.*;
-import org.evosuite.utils.generic.GenericAccessibleObject;
-import org.evosuite.utils.generic.GenericClass;
-import org.evosuite.utils.generic.GenericConstructor;
-import org.evosuite.utils.generic.GenericField;
-import org.evosuite.utils.generic.GenericMethod;
-import org.evosuite.utils.generic.GenericUtils;
 import org.evosuite.utils.Randomness;
+import org.evosuite.utils.generic.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.googlecode.gentyref.CaptureType;
-import com.googlecode.gentyref.GenericTypeReflector;
-
 import javax.servlet.http.HttpServlet;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Gordon Fraser
@@ -2201,6 +2196,11 @@ public class TestFactory {
                 addConstructor(test, c, position, 0);
             } else if (o.isMethod()) {
                 GenericMethod m = (GenericMethod) o;
+                if (Properties.isMethodUnderTest(m.getMethod()) && test.hasMethodUnderTestCall()) {  //already has a mut call (only one allowed)
+                    logger.debug("There's already a call to a method under test");
+                    return false;
+                }
+
                 logger.debug("Adding method call {}", m.getName());
                 name = m.getName();
 

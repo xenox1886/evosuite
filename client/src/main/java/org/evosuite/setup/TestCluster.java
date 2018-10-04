@@ -1245,20 +1245,6 @@ public class TestCluster {
         return testMethods.stream().filter(call -> !call.isConstructor()).collect(Collectors.toList());
     }
 
-    private List<GenericAccessibleObject<?>> filterUniqueMethodCalls(List<GenericAccessibleObject<?>> testMethods) {
-        List<GenericAccessibleObject<?>> list = new ArrayList<>();
-        for (GenericAccessibleObject<?> call : testMethods) {
-            if (call.isMethod()) {
-                GenericMethod genericMethod = (GenericMethod) call;
-                if (Properties.isUniqueMethod(genericMethod.getMethod())) {
-                    continue;   //don't add unique methods
-                }
-            }
-            list.add(call);
-        }
-        return list;
-    }
-
     private String getKey(GenericAccessibleObject<?> call) {
         String name = call.getDeclaringClass().getCanonicalName();
         if (call.isMethod()) {
