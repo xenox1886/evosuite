@@ -100,6 +100,10 @@ public class TestUsageChecker {
             return true;
         }
 
+        if (Properties.ONLY_CONSIDER_PUBLIC){
+            return false;
+        }
+
         for (java.lang.reflect.Type paramType : c.getGenericParameterTypes()) {
             if (!canUse(paramType)) {
                 return false;
@@ -219,6 +223,10 @@ public class TestUsageChecker {
             return true;
         }
 
+        if (Properties.ONLY_CONSIDER_PUBLIC){
+            return false;
+        }
+
         // If default access rights, then check if this class is in the same package as the target class
         if (!Modifier.isPrivate(c.getModifiers())) {
             //		        && !Modifier.isProtected(c.getModifiers())) {
@@ -286,6 +294,10 @@ public class TestUsageChecker {
             // Therefore, we set the field accessible to be on the safe side
             TestClusterUtils.makeAccessible(f);
             return true;
+        }
+
+        if (Properties.ONLY_CONSIDER_PUBLIC){
+            return false;
         }
 
         // If default access rights, then check if this class is in the same package as the target class
@@ -447,6 +459,10 @@ public class TestUsageChecker {
         if (Modifier.isPublic(m.getModifiers())) {
             TestClusterUtils.makeAccessible(m);
             return true;
+        }
+
+        if (Properties.ONLY_CONSIDER_PUBLIC){
+            return false;
         }
 
         // If default access rights, then check if this class is in the same package as the target class

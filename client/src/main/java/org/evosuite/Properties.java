@@ -549,6 +549,9 @@ public class Properties {
     @Parameter(key = "method_under_test", group = "Search Algorithm", description = "The unique descriptor of the method under test. Can be empty if not applicable.")
     public static String METHOD_UNDER_TEST = "";
 
+    @Parameter(key = "only_consider_public", group = "Search Algorithm", description = "If only public methods, fields and classes should be considered")
+    public static boolean ONLY_CONSIDER_PUBLIC = false;
+
     @Parameter(key = "whitelisted_prefixes", description = "Package prefixes separated by : which are explicitly allowed to be instrumented (Overwrite the resource excluded.classes)")
     public static String WHITELISTED_PREFIXES = "";
 
