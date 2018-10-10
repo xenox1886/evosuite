@@ -146,7 +146,7 @@ public class AssignmentStatement extends AbstractStatement {
 					//} catch (CodeUnderTestException e) {
 					//	throw CodeUnderTestException.throwException(e.getCause());
 				} catch (IllegalArgumentException e) {
-					logger.error("Error assigning value of type "
+					logger.debug("Error assigning value of type "
 					        + parameter.getSimpleClassName() + " defined at statement "
 					        + tc.getStatement(parameter.getStPosition()).getCode()
 					        + ", assignment statement: "
