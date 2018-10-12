@@ -546,8 +546,8 @@ public class Properties {
     @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Unique descriptors of methods that should be excluded.  Format: 'classname>methodname:class2>method'")
     public static String EXCLUDED_METHODS = "";
 
-    @Parameter(key = "method_under_test", group = "Search Algorithm", description = "The unique descriptor of the method under test. Can be empty if not applicable.")
-    public static String METHOD_UNDER_TEST = "";
+    @Parameter(key = "methods_under_test", group = "Search Algorithm", description = "The unique descriptor of methods under test. Can be empty if not applicable.")
+    public static String METHODS_UNDER_TEST = null;
 
     @Parameter(key = "only_consider_public", group = "Search Algorithm", description = "If only public methods, fields and classes should be considered")
     public static boolean ONLY_CONSIDER_PUBLIC = false;
@@ -2615,16 +2615,24 @@ public class Properties {
         return getMethodMap(excludedMethodStrings);
     }
 
+    private static Map<String, Set<String>> methodUnderTestMap; //cache for methods under test
 
+    /**
+     * Check if a method is a method under test
+     *
+     * @param m the method to check
+     * @return if the method is one of the methods under test
+     */
     public static boolean isMethodUnderTest(Method m) {
-        if (METHOD_UNDER_TEST == null || METHOD_UNDER_TEST.isEmpty()) {
+        if (METHODS_UNDER_TEST == null || METHODS_UNDER_TEST.isEmpty()) {
             return false;
         }
-        String[] split = METHOD_UNDER_TEST.split(Properties.CLASS_METHOD_SEPARATOR);
-        assert split.length == 2;
-        String descriptor = getUniqueDescriptor(m);
-        String className = m.getDeclaringClass().getName();
-        return split[0].equals(className) && split[1].equals(descriptor);
+        if (methodUnderTestMap == null) {
+            Set<String> methodsUnderTestsStrings = parseMethodStrings(METHODS_UNDER_TEST);
+            methodUnderTestMap = getMethodMap(methodsUnderTestsStrings);
+        }
+
+        return containsMethod(m, methodUnderTestMap);
     }
 
     /**
@@ -2660,7 +2668,7 @@ public class Properties {
     private static String getClassFromMethodString(String methodString) {
         int sepInd = methodString.indexOf(CLASS_METHOD_SEPARATOR);
         assert sepInd != -1;
-        assert sepInd == methodString.lastIndexOf(CLASS_METHOD_SEPARATOR);  //there must only be once
+        assert sepInd == methodString.lastIndexOf(CLASS_METHOD_SEPARATOR);  //there must only be one separator
 
         return methodString.substring(0, sepInd);
     }
@@ -2675,7 +2683,7 @@ public class Properties {
     private static String getMethodFromMethodString(String methodString) {
         int sepInd = methodString.indexOf(CLASS_METHOD_SEPARATOR);
         assert sepInd != -1;
-        assert sepInd == methodString.lastIndexOf(CLASS_METHOD_SEPARATOR);  //there must only be once
+        assert sepInd == methodString.lastIndexOf(CLASS_METHOD_SEPARATOR);  //there must only be one separator
 
         return methodString.substring(sepInd + CLASS_METHOD_SEPARATOR.length());
     }
