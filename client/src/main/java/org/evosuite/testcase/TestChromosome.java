@@ -537,7 +537,6 @@ public class TestChromosome extends ExecutableChromosome {
         boolean changed = false;
         int lastMutatableStatement = getLastMutatableStatement();
         double pl = 1d / (lastMutatableStatement + 1);
-        TestFactory testFactory = TestFactory.getInstance();
 
         if (Randomness.nextDouble() < Properties.CONCOLIC_MUTATION) {
             try {
@@ -555,36 +554,9 @@ public class TestChromosome extends ExecutableChromosome {
 
                     Statement statement = test.getStatement(position);
 
-                    if (statement.isReflectionStatement()) {
-                        continue;
-                    }
+                    boolean c = doChange(position);
+                    changed = c || changed;
 
-                    int oldDistance = statement.getReturnValue().getDistance();
-
-                    //constraints are handled directly in the statement mutations
-                    if (statement.mutate(test, testFactory)) {
-                        changed = true;
-                        mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
-                                TestMutationHistoryEntry.TestMutation.CHANGE, statement));
-                        assert (test.isValid());
-                        assert ConstraintVerifier.verifyTest(test);
-
-                    } else if (!statement.isAssignmentStatement() &&
-                            ConstraintVerifier.canDelete(test, position)) {
-                        //if a statement should not be deleted, then it cannot be either replaced by another one
-
-                        int pos = statement.getPosition();
-                        if (testFactory.changeRandomCall(test, statement)) {
-                            changed = true;
-                            mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
-                                    TestMutationHistoryEntry.TestMutation.CHANGE,
-                                    test.getStatement(pos)));
-                            assert ConstraintVerifier.verifyTest(test);
-                        }
-                        assert (test.isValid());
-                    }
-
-                    statement.getReturnValue().setDistance(oldDistance);
                     position = statement.getPosition(); // Might have changed due to mutation
                 }
             }
@@ -593,6 +565,51 @@ public class TestChromosome extends ExecutableChromosome {
         if (changed) {
             assert ConstraintVerifier.verifyTest(test);
         }
+
+        return changed;
+    }
+
+    /**
+     * Change a statement
+     *
+     * @param position the position of the statement to change
+     * @return if any changes occurred
+     */
+    private boolean doChange(int position) {
+        boolean changed = false;
+
+        Statement statement = test.getStatement(position);
+        TestFactory testFactory = TestFactory.getInstance();
+        if (statement.isReflectionStatement()) {
+            return false;
+        }
+
+        int oldDistance = statement.getReturnValue().getDistance();
+
+        //constraints are handled directly in the statement mutations
+        if (statement.mutate(test, testFactory)) {
+            changed = true;
+            mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
+                    TestMutationHistoryEntry.TestMutation.CHANGE, statement));
+            assert (test.isValid());
+            assert ConstraintVerifier.verifyTest(test);
+
+        } else if (!statement.isAssignmentStatement() &&
+                ConstraintVerifier.canDelete(test, position)) {
+            //if a statement should not be deleted, then it cannot be either replaced by another one
+
+            int pos = statement.getPosition();
+            if (testFactory.changeRandomCall(test, statement)) {
+                changed = true;
+                mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
+                        TestMutationHistoryEntry.TestMutation.CHANGE,
+                        test.getStatement(pos)));
+                assert ConstraintVerifier.verifyTest(test);
+            }
+            assert (test.isValid());
+        }
+
+        statement.getReturnValue().setDistance(oldDistance);
 
         return changed;
     }
@@ -693,16 +710,30 @@ public class TestChromosome extends ExecutableChromosome {
         int position = s.getKey();
         //multiply statement as many times as declared in the properties
         int count = 0;
+        List<Statement> multipliedStatements = new ArrayList<>(n);
         while (count < n && (!Properties.CHECK_MAX_LENGTH || size() < Properties.CHROMOSOME_LENGTH)) {
 
             count++;
             Statement toInsert = s.getValue().clone(test);
             test.addStatement(toInsert, position);
 
+            multipliedStatements.add(toInsert);
+
             mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
                     TestMutationHistoryEntry.TestMutation.INSERTION,
                     test.getStatement(position)));
 
+        }
+
+        //change multiplied statements if applicable
+        for (Statement multipliedStatement : multipliedStatements) {
+            if (Randomness.nextDouble() <= Properties.CHANGE_AFTER_MULTIPLY) {
+                if (multipliedStatement.toString().contains("add")){
+                    int j=0;
+                }
+                logger.debug("Changing statement at position {} after multiplication", multipliedStatement.getPosition());
+                doChange(multipliedStatement.getPosition());
+            }
         }
         return count;
     }

@@ -543,6 +543,10 @@ public class Properties {
     @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
     public static boolean MULTIPLY_FIXED = false;
 
+    @Parameter(key = "change_after_multiply", group = "Search Algorithm", description = "The probability of a multiplied statement being changed")
+    @DoubleValue(min = 0.0, max = 1.0)
+    public static double CHANGE_AFTER_MULTIPLY = 0.0d;
+
     @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Unique descriptors of methods that should be excluded.  Format: 'classname>methodname:class2>method'")
     public static String EXCLUDED_METHODS = "";
 
