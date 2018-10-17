@@ -553,13 +553,13 @@ public class EnvironmentTestClusterAugmenter {
 	private void handleVirtualFS(TestCase test) {
 		test.getAccessedEnvironment().addLocalFiles(VirtualFileSystem.getInstance().getAccessedFiles());
 
-		if (!hasAddedFiles && VirtualFileSystem.getInstance().getAccessedFiles().size() > 0) {
+		/*if (!hasAddedFiles && VirtualFileSystem.getInstance().getAccessedFiles().size() > 0) {
 			logger.info("Adding EvoSuiteFile calls to cluster");
 
 			hasAddedFiles = true;
 
 			addEnvironmentClassToCluster(FileSystemHandling.class);
-		}
+		}*/
 	}
 
 	private void handleReplaceCalls() {
@@ -575,7 +575,7 @@ public class EnvironmentTestClusterAugmenter {
 			}
 		}
 
-		if (!hasAddedSystem && org.evosuite.runtime.System.wasTimeAccessed()) {
+		/*if (!hasAddedSystem && org.evosuite.runtime.System.wasTimeAccessed()) {
 			hasAddedSystem = true;
 			try {
 				cluster.addTestCall(
@@ -586,7 +586,7 @@ public class EnvironmentTestClusterAugmenter {
 			} catch (NoSuchMethodException e) {
 				logger.error("Error while handling System: " + e.getMessage(), e);
 			}
-		}
+		}*/
 	}
 
 }

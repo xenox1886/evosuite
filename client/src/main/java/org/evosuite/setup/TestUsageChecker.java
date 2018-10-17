@@ -52,8 +52,11 @@ public class TestUsageChecker {
 
 
     public static boolean canUse(Constructor<?> c) {
-
         if (c.isSynthetic()) {
+            return false;
+        }
+
+        if (!canUse(c.getDeclaringClass())){
             return false;
         }
 
@@ -170,6 +173,10 @@ public class TestUsageChecker {
             return false;
         }
 
+        if (c.getName().startsWith("java.util.function")){
+            return false;
+        }
+
         if (TestClusterUtils.isEvoSuiteClass(c) && !MockList.isAMockClass(c.getCanonicalName())) {
             return false;
         }
@@ -264,6 +271,10 @@ public class TestUsageChecker {
             }
         }
 
+        if (!canUse(ownerClass)){
+            return false;
+        }
+
         if (f.isSynthetic()) {
             logger.debug("Skipping synthetic field " + f.getName());
             return false;
@@ -322,12 +333,14 @@ public class TestUsageChecker {
     }
 
     public static boolean canUse(Method m, Class<?> ownerClass) {
-
         final MethodNameMatcher matcher = new MethodNameMatcher();
         String methodSignature = m.getName() + Type.getMethodDescriptor(m);
         if (!matcher.methodMatches(methodSignature)) {
             logger.debug("Excluding method '" + methodSignature + "' that does not match criteria");
             return false;
+        }
+        if (m.getName().contains("shouldAllThrowIOExceptions")){
+            System.out.println();
         }
 
         if (m.isBridge()) {
@@ -337,6 +350,10 @@ public class TestUsageChecker {
 
         if (m.isSynthetic()) {
             logger.debug("Excluding synthetic method: " + m.toString());
+            return false;
+        }
+
+        if (!canUse(ownerClass)){
             return false;
         }
 

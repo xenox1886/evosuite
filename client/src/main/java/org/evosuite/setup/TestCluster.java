@@ -227,7 +227,7 @@ public class TestCluster {
                     if (Arrays.asList(genOwner.getGenericParameterTypes())
                             .stream().anyMatch(
                                     t -> t.equals(entry.getKey().getType()))
-                            ) {
+                    ) {
                         iter.remove();
                         break;
                     }
@@ -679,6 +679,9 @@ public class TestCluster {
         while (iter.hasNext()) {
             GenericAccessibleObject<?> gao = iter.next();
             if (!ConstraintVerifier.isValidPositionForInsertion(gao, test, position)) {
+                iter.remove();
+            }
+            if (!gao.getName().contains("add")) {
                 iter.remove();
             }
         }

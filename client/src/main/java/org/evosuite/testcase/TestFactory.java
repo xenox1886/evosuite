@@ -2347,7 +2347,15 @@ public class TestFactory {
     }
 
     private boolean canBeDuplicated(Statement statement) {
-        return statement instanceof MethodStatement && !Properties.isMethodUnderTest(((MethodStatement) statement).getMethod().getMethod());    //only methods that aren't the method under test can be duplicated
+        if (statement instanceof MethodStatement) {
+            MethodStatement methodStatement = (MethodStatement) statement;
+            if (Properties.isMethodUnderTest(((MethodStatement) statement).getMethod().getMethod())) {
+                //only methods that aren't the method under test can be duplicated
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     private Map.Entry<Integer, Statement> getRandomStatement(Map<Integer, Statement> map) {
