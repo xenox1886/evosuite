@@ -38,6 +38,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -543,7 +544,7 @@ public class Properties {
     @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
     public static boolean MULTIPLY_FIXED = false;
 
-    @Parameter(key = "use_spamming_calls",description = "If the call setCurrentTimeMillis and the class FileSystemHandling should be used. They have been observed to spam the generated input for collections (with more than 50% of the stmts being generated)")
+    @Parameter(key = "use_spamming_calls", description = "If the call setCurrentTimeMillis and the class FileSystemHandling should be used. They have been observed to spam the generated input for collections (with more than 50% of the stmts being generated)")
     public static boolean USE_SPAMMING_CALLS = true;    //ES default
 
     @Parameter(key = "excluded_prefixes", group = "Test Creation", description = "Package prefixes which should be excluded from test gen (separate by :)")
@@ -554,6 +555,9 @@ public class Properties {
 
     @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Unique descriptors of methods that should be excluded.  Format: 'classname>methodname:class2>method'")
     public static String EXCLUDED_METHODS = null;
+
+    @Parameter(key = "excluded_constructors", group = "Search Algorithm", description = "Unique descriptors of constructors that should be excluded.  Format: 'classname>constructorname:class2>constructor'")
+    public static String EXCLUDED_CONSTRUCTORS = null;
 
     @Parameter(key = "methods_under_test", group = "Search Algorithm", description = "The unique descriptor of methods under test. Can be empty if not applicable.")
     public static String METHODS_UNDER_TEST = null;
@@ -1284,6 +1288,7 @@ public class Properties {
     public enum ArchiveType {
         COVERAGE, MIO
     }
+
     /**
      * Constant <code>ARCHIVE_TYPE=COVERAGE</code>
      */
@@ -2564,9 +2569,10 @@ public class Properties {
 
     /**
      * Get a set of excluded prefixes
+     *
      * @return a set of excluded prefixes
      */
-    public static Set<String> getExcludedPrefixes(){
+    public static Set<String> getExcludedPrefixes() {
         return getClasspathElements(EXCLUDED_PREFIXES);
     }
 
@@ -2602,30 +2608,72 @@ public class Properties {
      * Check if the method map contains a method
      *
      * @param m         the method to check
-     * @param methodMap the method
+     * @param methodMap the method map
      * @return if the map contains the method
      */
     public static boolean containsMethod(Method m, Map<String, Set<String>> methodMap) {
         String className = m.getDeclaringClass().getName();
         if (methodMap.containsKey(className)) {
-            String descriptor = getUniqueDescriptor(m);
+            String descriptor = getUniqueMethodDescriptor(m);
             return methodMap.get(className).contains(descriptor);
         }
         return false;
     }
 
-    private static String getUniqueDescriptor(Method m) {
+    /**
+     * Check if the constructor map contains a constructor
+     *
+     * @param c              the constructor to check
+     * @param constructorMap the constructor
+     * @return if the map contains the constructor
+     */
+    public static boolean containsConstructor(Constructor c, Map<String, Set<String>> constructorMap) {
+        String className = c.getDeclaringClass().getName();
+        if (constructorMap.containsKey(className)) {
+            String descriptor = getUniqueConstructorDescriptor(c);
+            return constructorMap.get(className).contains(descriptor);
+        }
+        return false;
+    }
+
+    /**
+     * Get a method descriptor with the method name prefixed
+     *
+     * @param m the method
+     * @return the unique method descriptor
+     */
+    private static String getUniqueMethodDescriptor(Method m) {
         return m.getName() + Type.getMethodDescriptor(m);
     }
 
     /**
-     * Get a map of excluded method names
+     * Get a method descriptor with the constructor name prefixed
      *
-     * @return a map from class names to a set of method names in this class
+     * @param c the constructor
+     * @return the unique constructor descriptor
+     */
+    private static String getUniqueConstructorDescriptor(Constructor c) {
+        return c.getName() + Type.getConstructorDescriptor(c);
+    }
+
+    /**
+     * Get a map of classes to their excluded method descriptors
+     *
+     * @return a map from class names to a set of method descriptors in this class
      */
     public static Map<String, Set<String>> getExcludedMethodMap() {
         Set<String> excludedMethodStrings = parseMethodStrings(EXCLUDED_METHODS);
         return getMethodMap(excludedMethodStrings);
+    }
+
+    /**
+     * Get a map of classes to their excluded constructor descriptors
+     *
+     * @return a map from class names to a set of constructor descriptors in this class
+     */
+    public static Map<String, Set<String>> getExcludedConstructorMap() {
+        Set<String> excludedConstructorStrings = parseMethodStrings(EXCLUDED_CONSTRUCTORS);
+        return getMethodMap(excludedConstructorStrings);
     }
 
     private static Map<String, Set<String>> methodUnderTestMap; //cache for methods under test

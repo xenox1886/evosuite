@@ -49,6 +49,7 @@ public class TestUsageChecker {
     private static Set<String> excludedPrefixes = Properties.getExcludedPrefixes();
     private static Set<String> excludedClasses = Properties.getExcludedClasses();
     private static Map<String, Set<String>> excludedMethods = Properties.getExcludedMethodMap();
+    private static Map<String, Set<String>> excludedConstructors = Properties.getExcludedConstructorMap();
 
 
     public static boolean canUse(Constructor<?> c) {
@@ -96,6 +97,11 @@ public class TestUsageChecker {
         }
 
         if (!canUse(c.getDeclaringClass())) {
+            return false;
+        }
+
+        //check if blacklisted constructor
+        if (Properties.containsConstructor(c, excludedConstructors)) {
             return false;
         }
 
