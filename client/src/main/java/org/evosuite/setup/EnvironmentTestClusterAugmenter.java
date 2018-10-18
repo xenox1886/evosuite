@@ -553,17 +553,18 @@ public class EnvironmentTestClusterAugmenter {
 	private void handleVirtualFS(TestCase test) {
 		test.getAccessedEnvironment().addLocalFiles(VirtualFileSystem.getInstance().getAccessedFiles());
 
-		if (!hasAddedFiles && VirtualFileSystem.getInstance().getAccessedFiles().size() > 0) {
-			logger.info("Adding EvoSuiteFile calls to cluster");
+		if (Properties.USE_SPAMMING_CALLS) {    //shouldAllThrowIOExceptions in FileSystemHandling spams the generated input, therefore have a separate property for it
+			if (!hasAddedFiles && VirtualFileSystem.getInstance().getAccessedFiles().size() > 0) {
+				logger.info("Adding EvoSuiteFile calls to cluster");
 
-			hasAddedFiles = true;
+				hasAddedFiles = true;
 
-			addEnvironmentClassToCluster(FileSystemHandling.class);
+				addEnvironmentClassToCluster(FileSystemHandling.class);
+			}
 		}
 	}
 
 	private void handleReplaceCalls() {
-
 		if (!hasAddedRandom && Random.wasAccessed()) {
 			hasAddedRandom = true;
 			try {
@@ -575,16 +576,18 @@ public class EnvironmentTestClusterAugmenter {
 			}
 		}
 
-		if (!hasAddedSystem && org.evosuite.runtime.System.wasTimeAccessed()) {
-			hasAddedSystem = true;
-			try {
-				cluster.addTestCall(
-						new GenericMethod(System.class.getMethod("setCurrentTimeMillis", new Class<?>[] { long.class }),
-								new GenericClass(System.class)));
-			} catch (SecurityException e) {
-				logger.error("Error while handling System: " + e.getMessage(), e);
-			} catch (NoSuchMethodException e) {
-				logger.error("Error while handling System: " + e.getMessage(), e);
+		if (Properties.USE_SPAMMING_CALLS) {	//setCurrentTimeMillis spams the generated input with > 50% statements, therefore have a separate property for it
+			if (!hasAddedSystem && org.evosuite.runtime.System.wasTimeAccessed()) {
+				hasAddedSystem = true;
+				try {
+					cluster.addTestCall(
+							new GenericMethod(System.class.getMethod("setCurrentTimeMillis", new Class<?>[]{long.class}),
+									new GenericClass(System.class)));
+				} catch (SecurityException e) {
+					logger.error("Error while handling System: " + e.getMessage(), e);
+				} catch (NoSuchMethodException e) {
+					logger.error("Error while handling System: " + e.getMessage(), e);
+				}
 			}
 		}
 	}

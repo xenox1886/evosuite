@@ -45,8 +45,8 @@ public class TestUsageChecker {
 
     private static Logger logger = LoggerFactory.getLogger(TestUsageChecker.class);
 
-    private static final String EXCLUDED_CLASSES_SEPARATOR = ":";
     private static Set<String> whitelistedPrefixes = Properties.getWhitelistedPrefixes();
+    private static Set<String> excludedPrefixes = Properties.getExcludedPrefixes();
     private static Set<String> excludedClasses = Properties.getExcludedClasses();
     private static Map<String, Set<String>> excludedMethods = Properties.getExcludedMethodMap();
 
@@ -95,12 +95,16 @@ public class TestUsageChecker {
             return false;
         }
 
+        if (!canUse(c.getDeclaringClass())) {
+            return false;
+        }
+
         if (Modifier.isPublic(c.getModifiers())) {
             TestClusterUtils.makeAccessible(c);
             return true;
         }
 
-        if (Properties.ONLY_CONSIDER_PUBLIC){
+        if (Properties.ONLY_CONSIDER_PUBLIC) {
             return false;
         }
 
@@ -148,6 +152,10 @@ public class TestUsageChecker {
             return false;
         }
 
+        if (isWhitelisted(c.getName())) {   //whitelist trumps everything except private (because that can't be overriden without reflection)
+            return true;
+        }
+
         if (!Properties.USE_DEPRECATED && c.isAnnotationPresent(Deprecated.class)) {
             final Class<?> targetClass = Properties.getTargetClassAndDontInitialise();
 
@@ -155,10 +163,6 @@ public class TestUsageChecker {
                 logger.debug("Skipping deprecated class " + c.getName());
                 return false;
             }
-        }
-
-        if (isWhitelisted(c.getName())) {
-            return true;
         }
 
         if (c.isAnonymousClass()) {
@@ -219,11 +223,15 @@ public class TestUsageChecker {
             return false;
         }
 
+        if (containsExcludedPrefix(c.getName())) {  //check if the class starts with an excluded prefix
+            return false;
+        }
+
         if (Modifier.isPublic(c.getModifiers())) {
             return true;
         }
 
-        if (Properties.ONLY_CONSIDER_PUBLIC){
+        if (Properties.ONLY_CONSIDER_PUBLIC) {
             return false;
         }
 
@@ -287,6 +295,10 @@ public class TestUsageChecker {
             return false;
         }
 
+        if (!canUse(ownerClass)) {
+            return false;
+        }
+
         if (Modifier.isPublic(f.getModifiers())) {
             // It may still be the case that the field is defined in a non-visible superclass of the class
             // we already know we can use. In that case, the compiler would be fine with accessing the
@@ -296,7 +308,7 @@ public class TestUsageChecker {
             return true;
         }
 
-        if (Properties.ONLY_CONSIDER_PUBLIC){
+        if (Properties.ONLY_CONSIDER_PUBLIC) {
             return false;
         }
 
@@ -450,6 +462,10 @@ public class TestUsageChecker {
 		}
 		*/
 
+        if (!canUse(ownerClass)) {
+            return false;
+        }
+
         //check if a method is explicitly excluded
         if (Properties.containsMethod(m, excludedMethods)) {
             return false;
@@ -461,7 +477,7 @@ public class TestUsageChecker {
             return true;
         }
 
-        if (Properties.ONLY_CONSIDER_PUBLIC){
+        if (Properties.ONLY_CONSIDER_PUBLIC) {
             return false;
         }
 
@@ -569,11 +585,26 @@ public class TestUsageChecker {
     /**
      * Check if a class name is explicitly whitelisted
      *
-     * @param className
+     * @param className the class name to check
      * @return
      */
     private static boolean isWhitelisted(String className) {
         for (String prefix : whitelistedPrefixes) {
+            if (className.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if a class starts with an excluded prefix
+     *
+     * @param className the class name to check
+     * @return
+     */
+    private static boolean containsExcludedPrefix(String className) {
+        for (String prefix : excludedPrefixes) {
             if (className.startsWith(prefix)) {
                 return true;
             }

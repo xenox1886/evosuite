@@ -543,8 +543,17 @@ public class Properties {
     @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
     public static boolean MULTIPLY_FIXED = false;
 
+    @Parameter(key = "p_use_spamming_calls",description = "If the call setCurrentTimeMillis and the class FileSystemHandling should be used. They have been observed to spam the generated input for collections (with more than 50% of the stmts being generated)")
+    public static boolean USE_SPAMMING_CALLS = true;    //ES default
+
+    @Parameter(key = "excluded_prefixes", group = "Test Creation", description = "Package prefixes which should be excluded from test gen (separate by :)")
+    public static String EXCLUDED_PREFIXES = null;
+
+    @Parameter(key = "excluded_classes", group = "Test Creation", description = "Fully qualified class names which should be excluded from test gen (separate by :)")
+    public static String EXCLUDED_CLASSES = null;
+
     @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Unique descriptors of methods that should be excluded.  Format: 'classname>methodname:class2>method'")
-    public static String EXCLUDED_METHODS = "";
+    public static String EXCLUDED_METHODS = null;
 
     @Parameter(key = "methods_under_test", group = "Search Algorithm", description = "The unique descriptor of methods under test. Can be empty if not applicable.")
     public static String METHODS_UNDER_TEST = null;
@@ -1275,10 +1284,6 @@ public class Properties {
     public enum ArchiveType {
         COVERAGE, MIO
     }
-
-    @Parameter(key = "excluded_classes", group = "Test Creation", description = "Fully qualified class names which should be excluded from test gen (separate by :)")
-    public static String EXCLUDED_CLASSES = null;
-
     /**
      * Constant <code>ARCHIVE_TYPE=COVERAGE</code>
      */
@@ -2555,6 +2560,14 @@ public class Properties {
      */
     public static Set<String> getExcludedClasses() {
         return getClasspathElements(EXCLUDED_CLASSES);
+    }
+
+    /**
+     * Get a set of excluded prefixes
+     * @return a set of excluded prefixes
+     */
+    public static Set<String> getExcludedPrefixes(){
+        return getClasspathElements(EXCLUDED_PREFIXES);
     }
 
     /**
