@@ -543,7 +543,7 @@ public class Properties {
     @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
     public static boolean MULTIPLY_FIXED = false;
 
-    @Parameter(key = "p_use_spamming_calls",description = "If the call setCurrentTimeMillis and the class FileSystemHandling should be used. They have been observed to spam the generated input for collections (with more than 50% of the stmts being generated)")
+    @Parameter(key = "use_spamming_calls",description = "If the call setCurrentTimeMillis and the class FileSystemHandling should be used. They have been observed to spam the generated input for collections (with more than 50% of the stmts being generated)")
     public static boolean USE_SPAMMING_CALLS = true;    //ES default
 
     @Parameter(key = "excluded_prefixes", group = "Test Creation", description = "Package prefixes which should be excluded from test gen (separate by :)")
