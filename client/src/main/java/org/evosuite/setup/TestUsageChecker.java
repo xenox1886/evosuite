@@ -45,8 +45,8 @@ public class TestUsageChecker {
 
     private static Logger logger = LoggerFactory.getLogger(TestUsageChecker.class);
 
-    private static Set<String> whitelistedPrefixes = Properties.getWhitelistedPrefixes();
     private static Set<String> excludedPrefixes = Properties.getExcludedPrefixes();
+    private static Set<String> whitelistedClasses = Properties.getWhitelistedClasses();
     private static Set<String> excludedClasses = Properties.getExcludedClasses();
     private static Map<String, Set<String>> excludedMethods = Properties.getExcludedMethodMap();
     private static Map<String, Set<String>> excludedConstructors = Properties.getExcludedConstructorMap();
@@ -158,10 +158,6 @@ public class TestUsageChecker {
             return false;
         }
 
-        if (isWhitelisted(c.getName())) {   //whitelist trumps everything except private (because that can't be overriden without reflection)
-            return true;
-        }
-
         if (!Properties.USE_DEPRECATED && c.isAnnotationPresent(Deprecated.class)) {
             final Class<?> targetClass = Properties.getTargetClassAndDontInitialise();
 
@@ -215,6 +211,10 @@ public class TestUsageChecker {
         // Don't use Lambdas...for now
         if (c.getName().contains("$$Lambda")) {
             return false;
+        }
+
+        if (whitelistedClasses.contains(c.getName())) {   //whitelist trumps blacklist
+            return true;
         }
 
         if (excludedClasses.contains(c.getName())) { //can't use classes that are explicitly excluded
@@ -585,21 +585,6 @@ public class TestUsageChecker {
             }
         }
 
-        return false;
-    }
-
-    /**
-     * Check if a class name is explicitly whitelisted
-     *
-     * @param className the class name to check
-     * @return
-     */
-    private static boolean isWhitelisted(String className) {
-        for (String prefix : whitelistedPrefixes) {
-            if (className.startsWith(prefix)) {
-                return true;
-            }
-        }
         return false;
     }
 

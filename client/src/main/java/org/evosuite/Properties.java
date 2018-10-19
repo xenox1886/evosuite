@@ -550,6 +550,9 @@ public class Properties {
     @Parameter(key = "excluded_prefixes", group = "Test Creation", description = "Package prefixes which should be excluded from test gen (separate by :)")
     public static String EXCLUDED_PREFIXES = null;
 
+    @Parameter(key = "whitelisted_classes", description = "Whitelisted classes which override the blacklisted classes")
+    public static String WHITELISTED_CLASSES = null;
+
     @Parameter(key = "excluded_classes", group = "Test Creation", description = "Fully qualified class names which should be excluded from test gen (separate by :)")
     public static String EXCLUDED_CLASSES = null;
 
@@ -564,9 +567,6 @@ public class Properties {
 
     @Parameter(key = "only_consider_public", group = "Search Algorithm", description = "If only public methods, fields and classes should be considered")
     public static boolean ONLY_CONSIDER_PUBLIC = false;
-
-    @Parameter(key = "whitelisted_prefixes", description = "Package prefixes separated by : which are explicitly allowed to be instrumented (Overwrite the resource excluded.classes)")
-    public static String WHITELISTED_PREFIXES = "";
 
     @Parameter(key = "kincompensation", group = "Search Algorithm", description = "Penalty for duplicate individuals")
     @DoubleValue(min = 0.0, max = 1.0)
@@ -2581,8 +2581,8 @@ public class Properties {
      *
      * @return a set of class names
      */
-    public static Set<String> getWhitelistedPrefixes() {
-        return getClasspathElements(WHITELISTED_PREFIXES);
+    public static Set<String> getWhitelistedClasses() {
+        return getClasspathElements(WHITELISTED_CLASSES);
     }
 
 
