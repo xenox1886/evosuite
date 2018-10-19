@@ -221,15 +221,15 @@ public class TestUsageChecker {
             return false;
         }
 
+        if (containsExcludedPrefix(c.getName())) {  //check if the class starts with an excluded prefix
+            return false;
+        }
+
         // TODO: This should be unnecessary if Java reflection works...
         // This is inefficient
         if (TestClusterUtils.isAnonymousClass(c.getName())) {
             String message = c + " looks like an anonymous class, ignoring it (although reflection says " + c.isAnonymousClass() + ") " + c.getSimpleName();
             LoggingUtils.logWarnAtMostOnce(logger, message);
-            return false;
-        }
-
-        if (containsExcludedPrefix(c.getName())) {  //check if the class starts with an excluded prefix
             return false;
         }
 

@@ -550,7 +550,7 @@ public class Properties {
     @Parameter(key = "excluded_prefixes", group = "Test Creation", description = "Package prefixes which should be excluded from test gen (separate by :)")
     public static String EXCLUDED_PREFIXES = null;
 
-    @Parameter(key = "whitelisted_classes", description = "Whitelisted classes which override the blacklisted classes")
+    @Parameter(key = "whitelisted_classes", description = "Whitelisted classes which override the blacklisted classes and prefixes")
     public static String WHITELISTED_CLASSES = null;
 
     @Parameter(key = "excluded_classes", group = "Test Creation", description = "Fully qualified class names which should be excluded from test gen (separate by :)")
