@@ -42,6 +42,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -547,19 +550,19 @@ public class Properties {
     @Parameter(key = "use_spamming_calls", description = "If the call setCurrentTimeMillis and the class FileSystemHandling should be used. They have been observed to spam the generated input for collections (with more than 50% of the stmts being generated)")
     public static boolean USE_SPAMMING_CALLS = true;    //ES default
 
-    @Parameter(key = "excluded_prefixes", group = "Test Creation", description = "Package prefixes which should be excluded from test gen (separate by :)")
+    @Parameter(key = "excluded_prefixes", group = "Test Creation", description = "Package prefixes which should be excluded from test gen (separate by :). Can also be a path to a file, which contains the string.")
     public static String EXCLUDED_PREFIXES = null;
 
-    @Parameter(key = "whitelisted_classes", description = "Whitelisted classes which override the blacklisted classes and prefixes")
+    @Parameter(key = "whitelisted_classes", description = "Whitelisted classes which override the blacklisted classes and prefixes. Can also be a path to a file, which contains the string.")
     public static String WHITELISTED_CLASSES = null;
 
-    @Parameter(key = "excluded_classes", group = "Test Creation", description = "Fully qualified class names which should be excluded from test gen (separate by :)")
+    @Parameter(key = "excluded_classes", group = "Test Creation", description = "Fully qualified class names which should be excluded from test gen (separate by :). Can also be a path to a file, which contains the string.")
     public static String EXCLUDED_CLASSES = null;
 
-    @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Unique descriptors of methods that should be excluded.  Format: 'classname>methodname:class2>method'")
+    @Parameter(key = "excluded_methods", group = "Search Algorithm", description = "Unique descriptors of methods that should be excluded.  Format: 'classname>methodname:class2>method'. Can also be a path to a file, which contains the string.")
     public static String EXCLUDED_METHODS = null;
 
-    @Parameter(key = "excluded_constructors", group = "Search Algorithm", description = "Unique descriptors of constructors that should be excluded.  Format: 'classname>constructorname:class2>constructor'")
+    @Parameter(key = "excluded_constructors", group = "Search Algorithm", description = "Unique descriptors of constructors that should be excluded.  Format: 'classname>constructorname:class2>constructor'. Can also be a path to a file, which contains the string.")
     public static String EXCLUDED_CONSTRUCTORS = null;
 
     @Parameter(key = "methods_under_test", group = "Search Algorithm", description = "The unique descriptor of methods under test. Can be empty if not applicable.")
@@ -2600,6 +2603,8 @@ public class Properties {
             return ret;
         }
 
+        in = getStringFromFile(in); //might be a path to a file
+
         ret.addAll(Arrays.asList(in.split(CLASS_SEPARATOR)));
         return ret;
     }
@@ -2760,6 +2765,8 @@ public class Properties {
             return methods;
         }
 
+        in = getStringFromFile(in); //might be a path to a file
+
         String[] els = in.split(CLASS_SEPARATOR);
 
         for (String el : els) {
@@ -2770,6 +2777,29 @@ public class Properties {
             }
         }
         return methods;
+    }
+
+    /**
+     * Check if a string is actually a path to a file. If so, return the contents of the file.
+     * Otherwise return the input string
+     *
+     * @param path the possible path of a file
+     * @return the contents of the file or the input string if there is no file at this location
+     */
+    private static String getStringFromFile(String path) {
+        File f = new File(path);
+        if (!f.exists() || f.isDirectory()) {
+            return path;    //not a file
+        }
+
+        try {
+            byte[] encoded = Files.readAllBytes(Paths.get(path));
+            return new String(encoded, StandardCharsets.US_ASCII);
+        } catch (IOException e) {
+            logger.error("Error while reading file", e);
+            return path;    //return the path if there was an error
+        }
+
     }
 
 }
