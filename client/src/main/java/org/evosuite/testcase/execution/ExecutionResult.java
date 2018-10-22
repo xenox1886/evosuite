@@ -458,6 +458,18 @@ public class ExecutionResult implements Cloneable {
             copy.readProperties.addAll(readProperties);
         }
         copy.wasAnyPropertyWritten = wasAnyPropertyWritten;
+        try {
+            if (standardOut != null) {
+                copy.standardOut = new ByteArrayOutputStream();
+                standardOut.writeTo(copy.standardOut);
+            }
+            if (standardErr != null) {
+                copy.standardErr = new ByteArrayOutputStream();
+                standardErr.writeTo(copy.standardErr);
+            }
+        } catch (IOException e) {
+            logger.error("Error while cloning streams");
+        }
 
         return copy;
     }
