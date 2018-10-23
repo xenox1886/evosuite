@@ -26,6 +26,8 @@ import org.evosuite.runtime.LoopCounter;
 import org.evosuite.runtime.Runtime;
 import org.evosuite.runtime.RuntimeSettings;
 import org.evosuite.runtime.sandbox.Sandbox;
+import org.evosuite.testcase.statements.MethodStatement;
+import org.evosuite.testcase.statements.Statement;
 import org.evosuite.utils.FileIOUtils;
 import org.evosuite.utils.LoggingUtils;
 import org.objectweb.asm.Type;
@@ -2703,6 +2705,21 @@ public class Properties {
         }
 
         return containsMethod(m, methodUnderTestMap);
+    }
+
+    /**
+     * Check if a statement is a method call to a method under test
+     *
+     * @param s the statement to check
+     * @return if the statement calls a method under test
+     */
+    public static boolean isMethodUnderTestCall(Statement s) {
+        if (!(s instanceof MethodStatement)) {
+            return false;
+        }
+        MethodStatement methodStatement = (MethodStatement) s;
+
+        return isMethodUnderTest(methodStatement.getMethod().getMethod());
     }
 
     /**

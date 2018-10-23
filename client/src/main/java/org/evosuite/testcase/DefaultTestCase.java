@@ -1308,7 +1308,10 @@ public class DefaultTestCase implements TestCase, Serializable {
      */
     @Override
     public boolean hasMethodUnderTestCall() {
-        for (Statement statement : statements) {    //TODO not very efficient
+        //iterate in reverse for mildly improved performance (still linear though obviously)
+        ListIterator<Statement> reverseIterator = statements.listIterator(statements.size());
+        while (reverseIterator.hasPrevious()) {    //TODO not very efficient
+            Statement statement = reverseIterator.previous();
             if (statement instanceof MethodStatement) {
                 MethodStatement methodStatement = (MethodStatement) statement;
                 if (Properties.isMethodUnderTest(methodStatement.getMethod().getMethod())) {

@@ -22,12 +22,6 @@
  */
 package org.evosuite.setup;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Type;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-
 import org.evosuite.Properties;
 import org.evosuite.TestGenerationContext;
 import org.evosuite.ga.ConstructionFailedException;
@@ -42,13 +36,19 @@ import org.evosuite.testcase.TestCase;
 import org.evosuite.testcase.jee.InstanceOnlyOnce;
 import org.evosuite.testcase.variable.VariableReference;
 import org.evosuite.utils.ListUtil;
+import org.evosuite.utils.Randomness;
 import org.evosuite.utils.generic.GenericAccessibleObject;
 import org.evosuite.utils.generic.GenericClass;
 import org.evosuite.utils.generic.GenericConstructor;
 import org.evosuite.utils.generic.GenericMethod;
-import org.evosuite.utils.Randomness;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Type;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * @author Gordon Fraser
@@ -94,6 +94,11 @@ public class TestCluster {
      */
     private final static Map<GenericClass, Set<GenericAccessibleObject<?>>> modifiers = new LinkedHashMap<>();
 
+    /**
+     * The cache for the methods under test
+     */
+    private Set<GenericMethod> methodsUnderTest;
+
     private static InheritanceTree inheritanceTree = null;
 
     private EnvironmentTestClusterAugmenter environmentAugmenter;
@@ -129,6 +134,28 @@ public class TestCluster {
         CastClassManager.getInstance().clear();
 
         instance = null;
+    }
+
+    /**
+     * Get the methods under test. Cache results.
+     *
+     * @return a set of methods under test
+     */
+    public Set<GenericMethod> getMethodsUnderTest() {
+        if (methodsUnderTest != null) {
+            return methodsUnderTest;
+        }
+        Set<GenericMethod> methodsUnderTest = new LinkedHashSet<>();
+        for (GenericAccessibleObject<?> modifier : getInstance().getModifiers()) {
+            if (modifier instanceof GenericMethod) {
+                GenericMethod genericMethod = (GenericMethod) modifier;
+                if (Properties.isMethodUnderTest(genericMethod.getMethod())) {
+                    methodsUnderTest.add(genericMethod);
+                }
+            }
+        }
+        this.methodsUnderTest = methodsUnderTest;
+        return methodsUnderTest;
     }
 
     /**
@@ -227,7 +254,7 @@ public class TestCluster {
                     if (Arrays.asList(genOwner.getGenericParameterTypes())
                             .stream().anyMatch(
                                     t -> t.equals(entry.getKey().getType()))
-                            ) {
+                    ) {
                         iter.remove();
                         break;
                     }
@@ -397,6 +424,10 @@ public class TestCluster {
             CastClassManager.getInstance().addCastClass(clazz, 1);
             clearGeneratorCache(new GenericClass(clazz));
         }
+    }
+
+    public Collection<GenericClass> getGenericClasses() {
+        return Collections.unmodifiableCollection(generators.keySet());
     }
 
     /**

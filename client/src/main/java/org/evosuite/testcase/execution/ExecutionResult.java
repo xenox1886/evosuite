@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.*;
 
 public class ExecutionResult implements Cloneable {
@@ -458,18 +459,10 @@ public class ExecutionResult implements Cloneable {
             copy.readProperties.addAll(readProperties);
         }
         copy.wasAnyPropertyWritten = wasAnyPropertyWritten;
-        try {
-            if (standardOut != null) {
-                copy.standardOut = new ByteArrayOutputStream();
-                standardOut.writeTo(copy.standardOut);
-            }
-            if (standardErr != null) {
-                copy.standardErr = new ByteArrayOutputStream();
-                standardErr.writeTo(copy.standardErr);
-            }
-        } catch (IOException e) {
-            logger.error("Error while cloning streams");
-        }
+
+        //we should be fine with aliasing, since the streams aren't changed, only set
+        copy.standardOut = standardOut;
+        copy.standardErr = standardErr;
 
         return copy;
     }

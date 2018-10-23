@@ -42,14 +42,12 @@ import org.evosuite.testcase.variable.VariableReference;
 import org.evosuite.testsuite.TestSuiteFitnessFunction;
 import org.evosuite.utils.Randomness;
 import org.evosuite.utils.generic.GenericAccessibleObject;
+import org.evosuite.utils.generic.GenericMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Chromosome representation of test cases
@@ -389,6 +387,13 @@ public class TestChromosome extends ExecutableChromosome {
             }
         }
 
+        if (!test.hasMethodUnderTestCall() && Properties.METHODS_UNDER_TEST != null && !Properties.METHODS_UNDER_TEST.isEmpty()) {
+            if (addMethodUnderTestAtEnd()) {
+                changed = true;
+            }
+        }
+
+
         if (changed) {
             this.increaseNumberOfMutations();
             setChanged(true);
@@ -402,6 +407,29 @@ public class TestChromosome extends ExecutableChromosome {
         // if it happens, it means a bug in EvoSuite
         assert ConstraintVerifier.verifyTest(test);
         assert !ConstraintVerifier.hasAnyOnlyForAssertionMethod(test);
+    }
+
+    /**
+     * Add a method under test at the end of the method
+     *
+     * @return if changed
+     */
+    private boolean addMethodUnderTestAtEnd() {
+        Set<GenericMethod> methodsUnderTest = TestCluster.getInstance().getMethodsUnderTest();
+
+        if (methodsUnderTest.isEmpty()) {
+            logger.debug("No methods under test found, not adding one to the test case that doesn't have one");
+        } else {
+            GenericMethod toAdd = Randomness.choice(methodsUnderTest);  //randomly choose a method
+            //add the chosen method at the end of the test
+            try {
+                TestFactory.getInstance().addMethod(test, toAdd, test.size(), 0);   //add the method under test at the end
+                return true;
+            } catch (ConstructionFailedException e) {
+                logger.debug("Couldn't append method under test");  //this can happen if there are no generators for the method
+            }
+        }
+        return false;
     }
 
 
