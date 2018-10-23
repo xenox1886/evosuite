@@ -549,10 +549,6 @@ public class Properties {
     @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
     public static boolean MULTIPLY_FIXED = false;
 
-    @Parameter(key = "p_variable_reuse", description = "The probability of a variable being reused for a method call argument")
-    @DoubleValue(min = 0.0, max = 1.0)
-    public static double P_VARIABLE_REUSE = 1.0;
-
     @Parameter(key = "use_spamming_calls", description = "If the call setCurrentTimeMillis and the class FileSystemHandling should be used. They have been observed to spam the generated input for collections (with more than 50% of the stmts being generated)")
     public static boolean USE_SPAMMING_CALLS = true;    //ES default
 

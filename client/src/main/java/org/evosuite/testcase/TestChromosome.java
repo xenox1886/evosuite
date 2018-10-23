@@ -726,6 +726,7 @@ public class TestChromosome extends ExecutableChromosome {
             count++;
             Statement toInsert = s.getValue().clone(test);
             test.addStatement(toInsert, position);
+            toInsert.mutate(test, TestFactory.getInstance());   //mutate after multiplying
 
             mutationHistory.addMutationEntry(new TestMutationHistoryEntry(
                     TestMutationHistoryEntry.TestMutation.INSERTION,

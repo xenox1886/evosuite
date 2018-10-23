@@ -1228,8 +1228,8 @@ public class TestFactory {
 
             //regular creation
 
-            GenericAccessibleObject<?> o = TestCluster.getInstance().getRandomGenerator(
-                    clazz, currentRecursion, test, position, generatorRefToExclude, recursionDepth);
+            GenericAccessibleObject<?> o = TestCluster.getInstance().getRandomGenerator(clazz);
+                    //clazz, currentRecursion, test, position, generatorRefToExclude, recursionDepth);
             currentRecursion.add(o);
 
             if (o == null) {
@@ -2347,7 +2347,9 @@ public class TestFactory {
     }
 
     private boolean canBeDuplicated(Statement statement) {
-        return statement instanceof MethodStatement && !Properties.isMethodUnderTest(((MethodStatement) statement).getMethod().getMethod());    //only methods that aren't the method under test can be duplicated
+        return (statement instanceof MethodStatement && !Properties.isMethodUnderTest(((MethodStatement) statement).getMethod().getMethod()))    //only methods that aren't the method under test can be duplicated
+                ;
+
     }
 
     private Map.Entry<Integer, Statement> getRandomStatement(Map<Integer, Statement> map) {
