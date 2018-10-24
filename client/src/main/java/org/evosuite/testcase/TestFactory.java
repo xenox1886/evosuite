@@ -1228,8 +1228,8 @@ public class TestFactory {
 
             //regular creation
 
-            GenericAccessibleObject<?> o = TestCluster.getInstance().getRandomGenerator(clazz);
-                    //clazz, currentRecursion, test, position, generatorRefToExclude, recursionDepth);
+            GenericAccessibleObject<?> o = TestCluster.getInstance().getRandomGenerator(
+                    clazz, currentRecursion, test, position, generatorRefToExclude, recursionDepth);
             currentRecursion.add(o);
 
             if (o == null) {
