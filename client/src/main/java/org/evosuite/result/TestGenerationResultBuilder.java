@@ -227,22 +227,6 @@ public class TestGenerationResultBuilder {
 
     public void setGeneticAlgorithm(GeneticAlgorithm<?> ga) {
         this.ga = ga;
-
-        //a fitness function might double as a search listener, which isn't very nice, but I couldn't find a not dirty way to do that..
-        for (FitnessFunction f : ga.getFitnessFunctions()) {
-            if (f instanceof SearchListener) {
-                ga.addListener((SearchListener) f);
-            }
-        }
-
-        if (ga instanceof AbstractMOSA) {
-            for (Object f : ((AbstractMOSA) ga).getTestSuiteFitnessFunctions()) {
-                if (f instanceof SearchListener) {
-                    ga.addListener((SearchListener) f);
-                }
-            }
-        }
-
         for (Map.Entry<FitnessFunction<?>, Double> e : ga.getBestIndividual().getCoverageValues().entrySet()) {
             targetCoverages.put(e.getKey(), e.getValue());
         }

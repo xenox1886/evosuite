@@ -82,6 +82,12 @@ public abstract class AbstractMOSA<T extends Chromosome> extends GeneticAlgorith
         this.suiteFitnessFunctions = new LinkedHashMap<TestSuiteFitnessFunction, Class<?>>();
         for (Properties.Criterion criterion : Properties.CRITERION) {
             TestSuiteFitnessFunction suiteFit = FitnessFunctions.getFitnessFunction(criterion);
+
+            //a fitness function might double as a search listener, which isn't very nice, but I couldn't find a not dirty way to do that..
+            if (suiteFit instanceof SearchListener){
+                this.addListener((SearchListener) suiteFit);
+            }
+
             Class<?> testFit = FitnessFunctions.getTestFitnessFunctionClass(criterion);
             this.suiteFitnessFunctions.put(suiteFit, testFit);
         }
