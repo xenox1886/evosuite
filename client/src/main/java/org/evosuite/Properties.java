@@ -2530,35 +2530,36 @@ public class Properties {
         FileIOUtils.writeFile(buffer.toString(), fileName);
     }
 
-    /**
-     * <p>
-     * resetToDefaults
-     * </p>
-     */
-    public void resetToDefaults() {
-        Properties.instance = new Properties(false, true);
-        for (Field f : Properties.class.getFields()) {
-            if (f.isAnnotationPresent(Parameter.class)) {
-                if (defaultMap.containsKey(f)) {
-                    try {
-                        f.set(null, defaultMap.get(f));
-                    } catch (Exception e) {
-                        logger.error("Failed to init property field " + f
-                                + " , " + e.getMessage(), e);
-                    }
-                }
-            }
-        }
-    }
+	/**
+	 * <p>
+	 * resetToDefaults
+	 * </p>
+	 */
+	public void resetToDefaults() {
+		Properties.instance = new Properties(false, true);
+		for (Field f : Properties.class.getFields()) {
+			if (f.isAnnotationPresent(Parameter.class)) {
+				if (defaultMap.containsKey(f)) {
+					try {
+						f.set(null, defaultMap.get(f));
+					} catch (Exception e) {
+						logger.error("Failed to init property field " + f
+								+ " , " + e.getMessage(), e);
+					}
+				}
+			}
+		}
+	}
 
-
-    /*
-     * whether or not the regression mode is running
-     */
-    public static boolean isRegression() {
-        boolean isRegression = (STRATEGY == Strategy.REGRESSION);
-        return isRegression;
-    }
+	public static final String JAVA_VERSION_WARN_MSG = "EvoSuite does not support Java versions > 8 yet";
+	
+	/*
+	 * whether or not the regression mode is running
+	 */
+	public static boolean isRegression(){
+		boolean isRegression = (STRATEGY == Strategy.REGRESSION);
+		return isRegression;
+	}
 
     public static final String CLASS_SEPARATOR = ":";
     public static final String CLASS_METHOD_SEPARATOR = ">";

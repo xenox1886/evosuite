@@ -310,41 +310,61 @@ public class TestGeneration {
             }
         }
 
-        switch (strategy) {
-            case EVOSUITE:
-                cmdLine.add("-Dstrategy=EvoSuite");
-                break;
-            case ONEBRANCH:
-                cmdLine.add("-Dstrategy=OneBranch");
-                break;
-            case RANDOM:
-                cmdLine.add("-Dstrategy=Random");
-                break;
-            case RANDOM_FIXED:
-                cmdLine.add("-Dstrategy=Random_Fixed");
-                break;
-            case REGRESSION:
-                cmdLine.add("-Dstrategy=Regression");
-                break;
-            case ENTBUG:
-                cmdLine.add("-Dstrategy=EntBug");
-                break;
-            case MOSUITE:
-                cmdLine.add("-Dstrategy=MOSuite");
-                break;
-            case DSE:
-                cmdLine.add("-Dstrategy=DSE");
-                break;
-            case NOVELTY:
-                cmdLine.add("-Dstrategy=Novelty");
-                break;
-            default:
-                throw new RuntimeException("Unsupported strategy: " + strategy);
-        }
-        cmdLine.add("-DTARGET_CLASS=" + target);
-        if (Properties.PROJECT_PREFIX != null) {
-            cmdLine.add("-DPROJECT_PREFIX=" + Properties.PROJECT_PREFIX);
-        }
+		switch (strategy) {
+		case EVOSUITE:
+			cmdLine.add("-Dstrategy=EvoSuite");
+			break;
+		case ONEBRANCH:
+			cmdLine.add("-Dstrategy=OneBranch");
+			break;
+		case RANDOM:
+			cmdLine.add("-Dstrategy=Random");
+			break;
+		case RANDOM_FIXED:
+			cmdLine.add("-Dstrategy=Random_Fixed");
+			break;
+		case REGRESSION:
+			cmdLine.add("-Dstrategy=Regression");
+			break;
+		case ENTBUG:
+			cmdLine.add("-Dstrategy=EntBug");
+			break;
+		case MOSUITE:
+			cmdLine.add("-Dstrategy=MOSuite");
+
+			// Set up defaults for MOSA if not specified by user
+			boolean algorithmSet = false;
+			boolean selectionSet = false;
+			for (String arg : args) {
+				if (arg.startsWith("-Dalgorithm")) {
+					algorithmSet = true;
+				}
+				if (arg.startsWith("-Dselection_function")) {
+					selectionSet = true;
+				}
+			}
+
+			if(!selectionSet) {
+				cmdLine.add("-Dselection_function=RANK_CROWD_DISTANCE_TOURNAMENT");
+			}
+
+			if(!algorithmSet) {
+				cmdLine.add("-Dalgorithm=MOSA");
+			}
+			break;
+		case DSE:
+			cmdLine.add("-Dstrategy=DSE");
+			break;
+		case NOVELTY:
+			cmdLine.add("-Dstrategy=Novelty");
+			break;
+		default:
+			throw new RuntimeException("Unsupported strategy: " + strategy);
+		}
+		cmdLine.add("-DTARGET_CLASS=" + target);
+		if (Properties.PROJECT_PREFIX != null) {
+			cmdLine.add("-DPROJECT_PREFIX=" + Properties.PROJECT_PREFIX);
+		}
 
         cmdLine.add(ClientProcess.class.getName());
 

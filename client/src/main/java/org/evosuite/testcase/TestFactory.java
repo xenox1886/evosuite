@@ -164,9 +164,9 @@ public class TestFactory {
             throw new ConstructionFailedException("Max recursion depth reached");
         }
 
-        //TODO this needs to be fixed once we handle Generics in mocks
-        FunctionalMockStatement fms = new FunctionalMockStatement(test, type, new GenericClass(type).getRawClass());
-        VariableReference ref = test.addStatement(fms, position);
+		//TODO this needs to be fixed once we handle Generics in mocks
+		FunctionalMockStatement fms = new FunctionalMockStatement(test, type, new GenericClass(type));
+		VariableReference ref = test.addStatement(fms, position);
 
         //note: when we add a new mock, by default it will have no parameter at the beginning
 
@@ -183,9 +183,9 @@ public class TestFactory {
             throw new ConstructionFailedException("Max recursion depth reached");
         }
 
-        //TODO this needs to be fixed once we handle Generics in mocks
-        FunctionalMockForAbstractClassStatement fms = new FunctionalMockForAbstractClassStatement(test, type, new GenericClass(type).getRawClass());
-        VariableReference ref = test.addStatement(fms, position);
+		//TODO this needs to be fixed once we handle Generics in mocks
+		FunctionalMockForAbstractClassStatement fms = new FunctionalMockForAbstractClassStatement(test, type, new GenericClass(type));
+		VariableReference ref = test.addStatement(fms, position);
 
         //note: when we add a new mock, by default it will have no parameter at the beginning
 
@@ -1251,12 +1251,17 @@ public class TestFactory {
                             continue;
                         }
 
-                        if (var.isAssignableTo(type) && !(statement instanceof FunctionalMockStatement)) {
-                            logger.debug("Reusing variable at position {}", var.getStPosition());
-                            return var;
-                        }
-                    }
-                }
+						if (var.isAssignableTo(type) && ! (statement instanceof FunctionalMockStatement)) {
+
+						    // Workaround for https://issues.apache.org/jira/browse/LANG-1420
+                            if(!clazz.getRawClass().isAssignableFrom(var.getGenericClass().getRawClass())) {
+                                continue;
+                            }
+							logger.debug("Reusing variable at position {}",var.getStPosition());
+							return var;
+						}
+					}
+				}
 
                 if (canUseFunctionalMocks && (Properties.MOCK_IF_NO_GENERATOR || Properties.P_FUNCTIONAL_MOCKING > 0)) {
 					/*
