@@ -258,9 +258,6 @@ public class MonotonicGA<T extends Chromosome> extends GeneticAlgorithm<T> {
                             + DELTA)) : "best fitness before evolve()/sortPopulation() was: " + bestFitnessBeforeEvolution
                             + ", now best fitness is " + bestFitnessAfterEvolution;
                 }
-
-                //record the values of the best
-                fitnessFunctions.stream().filter(f -> f instanceof EventEmitter).forEach(f -> ((EventEmitter) f).doRecordAfterEvolution(getBestIndividual()));
             }
 
             {

@@ -30,15 +30,12 @@ import org.evosuite.coverage.CoverageCriteriaAnalyzer;
 import org.evosuite.coverage.FitnessFunctions;
 import org.evosuite.coverage.TestFitnessFactory;
 import org.evosuite.coverage.dataflow.DefUseCoverageSuiteFitness;
-import org.evosuite.ga.Chromosome;
-import org.evosuite.ga.FitnessFunction;
-import org.evosuite.ga.metaheuristics.EventEmitter;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.ga.stoppingconditions.StoppingCondition;
 import org.evosuite.junit.JUnitAnalyzer;
 import org.evosuite.junit.writer.TestSuiteWriter;
-import org.evosuite.regression.bytecode.RegressionClassDiff;
 import org.evosuite.regression.RegressionSuiteMinimizer;
+import org.evosuite.regression.bytecode.RegressionClassDiff;
 import org.evosuite.result.TestGenerationResult;
 import org.evosuite.result.TestGenerationResultBuilder;
 import org.evosuite.rmi.ClientServices;
@@ -52,18 +49,10 @@ import org.evosuite.setup.ExceptionMapGenerator;
 import org.evosuite.setup.TestCluster;
 import org.evosuite.statistics.RuntimeVariable;
 import org.evosuite.statistics.StatisticsSender;
-import org.evosuite.strategy.*;
+import org.evosuite.strategy.TestGenerationStrategy;
 import org.evosuite.symbolic.DSEStats;
-import org.evosuite.testcase.ConstantInliner;
-import org.evosuite.testcase.DefaultTestCase;
-import org.evosuite.testcase.TestCase;
-import org.evosuite.testcase.TestChromosome;
-import org.evosuite.testcase.TestFitnessFunction;
-import org.evosuite.testcase.execution.EvosuiteError;
-import org.evosuite.testcase.execution.ExecutionResult;
-import org.evosuite.testcase.execution.ExecutionTrace;
-import org.evosuite.testcase.execution.ExecutionTracer;
-import org.evosuite.testcase.execution.TestCaseExecutor;
+import org.evosuite.testcase.*;
+import org.evosuite.testcase.execution.*;
 import org.evosuite.testcase.execution.reset.ClassReInitializer;
 import org.evosuite.testcase.statements.MethodStatement;
 import org.evosuite.testcase.statements.Statement;
@@ -126,9 +115,9 @@ public class TestSuiteGenerator {
 
         ClientServices.getInstance().getClientNode().changeState(ClientState.INITIALIZATION);
 
-		// Deactivate loop counter to make sure classes initialize properly
-		LoopCounter.getInstance().setActive(false);
-		ExceptionMapGenerator.initializeExceptionMap(Properties.TARGET_CLASS);
+        // Deactivate loop counter to make sure classes initialize properly
+        LoopCounter.getInstance().setActive(false);
+        ExceptionMapGenerator.initializeExceptionMap(Properties.TARGET_CLASS);
 
         TestCaseExecutor.initExecutor();
         try {
@@ -248,8 +237,6 @@ public class TestSuiteGenerator {
 
         postProcessTests(testCases);
 
-        onFinished(testCases);
-
         ClientServices.getInstance().getClientNode().publishPermissionStatistics();
         PermissionStatistics.getInstance().printStatistics(LoggingUtils.getEvoLogger());
 
@@ -267,19 +254,6 @@ public class TestSuiteGenerator {
         LoggingUtils.getEvoLogger().info("");
 
         return result;
-    }
-
-    /**
-     * Emit output if the fitness function can be emitted
-     *
-     * @param bestIndividual the best individual found after the search
-     */
-    private void onFinished(Chromosome bestIndividual) {
-        for (FitnessFunction<?> fitnessFunction : bestIndividual.getFitnessValues().keySet()) {
-            if (fitnessFunction instanceof EventEmitter) {
-                ((EventEmitter) fitnessFunction).onEventCompletion(bestIndividual);
-            }
-        }
     }
 
     /**
