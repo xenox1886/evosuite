@@ -63,6 +63,10 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 	protected void evolve() {
 		List<T> offspringPopulation = this.breedNextGeneration();
 
+		if (isFinished()){	//make sure not to get stuck here if the timeout is reached
+			return;
+		}
+
 		// Create the union of parents and offSpring
 		List<T> union = new ArrayList<T>();
 		union.addAll(this.population);
@@ -96,6 +100,9 @@ public class MOSA<T extends Chromosome> extends AbstractMOSA<T> {
 			index++;
 			if (remain > 0) {
 				front = this.rankingFunction.getSubfront(index);
+			}
+			if (isFinished()){	//make sure not to get stuck here if the timeout is reached
+				return;
 			}
 		}
 
