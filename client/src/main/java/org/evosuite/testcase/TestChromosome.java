@@ -423,8 +423,10 @@ public class TestChromosome extends ExecutableChromosome {
             GenericMethod toAdd = Randomness.choice(methodsUnderTest);  //randomly choose a method
             //add the chosen method at the end of the test
             try {
-                TestFactory.getInstance().addMethod(test, toAdd, test.size(), 0);   //add the method under test at the end
-                return true;
+                if (test != null) {
+                    TestFactory.getInstance().addMethod(test, toAdd, test.size(), 0);   //add the method under test at the end
+                    return true;
+                }
             } catch (ConstructionFailedException e) {
                 logger.debug("Couldn't append method under test");  //this can happen if there are no generators for the method
             }
