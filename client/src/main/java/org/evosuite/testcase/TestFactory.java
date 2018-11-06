@@ -1417,6 +1417,9 @@ public class TestFactory {
             } else {
                 clazz = clazz.getGenericInstantiation();
             }
+            if (clazz == null){
+                return null;
+            }
             parameterType = clazz.getType();
         }
 
