@@ -543,7 +543,7 @@ public class Properties {
     public static double P_TEST_DUPLICATE = 0d;
 
     @Parameter(key = "p_multiplication_count", group = "Search Algorithm", description = "The number of statements that will be added if multiplying is chosen")
-    @IntValue(min = 0, max = 1000)
+    @IntValue(min = 0, max = 10000)
     public static int MULTIPLICATION_COUNT = 0;
 
     @Parameter(key = "p_multiply_fixed", group = "Search Algorithm", description = "If a statement should be multiplied a fixed number of time or else with decreasing probability")
