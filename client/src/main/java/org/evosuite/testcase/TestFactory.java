@@ -1150,7 +1150,7 @@ public class TestFactory {
                 logger.debug("Chosen: " + clazz);
             }
             Type parameterType = clazz.getParameterTypes().get(0);
-            if (!(parameterType instanceof WildcardType) && GenericTypeReflector.erase(parameterType).equals(Class.class)) {
+            if (!(parameterType instanceof WildcardType) && GenericClass.erase(parameterType).equals(Class.class)) {
                 throw new ConstructionFailedException(
                         "Cannot instantiate a class with a class");
             }

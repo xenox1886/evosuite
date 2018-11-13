@@ -148,8 +148,8 @@ public abstract class PrimitiveStatement<T> extends AbstractStatement {
             statement = new BytePrimitiveStatement(tc);
         } else if (clazz.equals(String.class)) {
             statement = new StringPrimitiveStatement(tc);
-        } else if (GenericTypeReflector.erase(clazz).isEnum()) {
-            statement = new EnumPrimitiveStatement(tc, GenericTypeReflector.erase(clazz));
+        } else if (GenericClass.erase(clazz).isEnum()) {
+            statement = new EnumPrimitiveStatement(tc, GenericClass.erase(clazz));
         } else if (EnvironmentStatements.isEnvironmentData(clazz)) {
             statement = EnvironmentStatements.getStatement(clazz, tc);
         } else if (clazz == Class.class) {
@@ -162,10 +162,10 @@ public abstract class PrimitiveStatement<T> extends AbstractStatement {
                 if (typeParameter instanceof WildcardType) {
                     statement = new ClassPrimitiveStatement(
                             tc,
-                            GenericTypeReflector.erase(((WildcardType) typeParameter).getUpperBounds()[0]));
+                            GenericClass.erase(((WildcardType) typeParameter).getUpperBounds()[0]));
                 } else {
                     statement = new ClassPrimitiveStatement(tc,
-                            GenericTypeReflector.erase(typeParameter));
+                            GenericClass.erase(typeParameter));
                 }
             } else {
                 logger.debug("Creating class primitive with random value / "
@@ -174,7 +174,7 @@ public abstract class PrimitiveStatement<T> extends AbstractStatement {
             }
             /*
 						if (genericClass.hasWildcardTypes()) {
-							Class<?> bound = GenericTypeReflector.erase(TypeUtils.getImplicitUpperBounds((WildcardType) typeParameter)[0]);
+							Class<?> bound = GenericClass.erase(TypeUtils.getImplicitUpperBounds((WildcardType) typeParameter)[0]);
 							if (!bound.equals(Object.class)) {
 								Set<Class<?>> assignableClasses = TestClusterGenerator.getConcreteClasses(bound,
 								                                                                          DependencyAnalysis.getInheritanceTree());

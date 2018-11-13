@@ -105,7 +105,7 @@ public class GenericTypeInference extends TestVisitor {
 
 	private void calculateExactType(ParameterizedType type) {
 		logger.info("Calculating exact tyep for parameterized type " + type);
-		Class<?> rawClass = GenericTypeReflector.erase(type);
+		Class<?> rawClass = GenericClass.erase(type);
 		Type exactType = type;
 		for (VariableReference var : typeMap.get(type)) {
 			ParameterizedType currentType = (ParameterizedType) var.getType();
@@ -265,7 +265,7 @@ public class GenericTypeInference extends TestVisitor {
 					types.add(new WildcardTypeImpl(TypeUtils.getImplicitBounds(var),
 					        new Type[] {}));
 				} else {
-					Class<?> paramClass = GenericTypeReflector.erase(type);
+					Class<?> paramClass = GenericClass.erase(type);
 					if (paramClass.isPrimitive()) {
 						types.add(ClassUtils.primitiveToWrapper(paramClass));
 					} else {

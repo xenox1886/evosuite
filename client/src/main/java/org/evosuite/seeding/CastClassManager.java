@@ -169,7 +169,7 @@ public class CastClassManager {
 	 */
 	private boolean isSpecialCase(TypeVariable<?> typeVariable) {
 		for (Type bound : typeVariable.getBounds()) {
-			Class<?> clazz = GenericTypeReflector.erase(bound);
+			Class<?> clazz = GenericClass.erase(bound);
 			if (specialCases.contains(clazz))
 				return true;
 		}
@@ -207,8 +207,8 @@ public class CastClassManager {
 			if (t instanceof WildcardType)
 				continue; // TODO: For now.
 
-			Class<?> clazz = GenericTypeReflector.erase(t);
-			if (!TestUsageChecker.canUse(GenericTypeReflector.erase(clazz)))
+			Class<?> clazz = GenericClass.erase(t);
+			if (!TestUsageChecker.canUse(GenericClass.erase(clazz)))
 				continue;
 
 			GenericClass genericClass = new GenericClass(clazz).getWithWildcardTypes();
@@ -223,7 +223,7 @@ public class CastClassManager {
 			if (typeMap.containsKey(t))
 				t = typeMap.get(t);
 
-			Class<?> clazz = GenericTypeReflector.erase(t);
+			Class<?> clazz = GenericClass.erase(t);
 			logger.debug("Checking bound: " + t);
 
 			if (!TestUsageChecker.canUse(clazz))
@@ -280,8 +280,8 @@ public class CastClassManager {
 			if (t instanceof WildcardType)
 				continue; // TODO: For now.
 
-			Class<?> clazz = GenericTypeReflector.erase(t);
-			if (!TestUsageChecker.canUse(GenericTypeReflector.erase(clazz)))
+			Class<?> clazz = GenericClass.erase(t);
+			if (!TestUsageChecker.canUse(GenericClass.erase(clazz)))
 				continue;
 
 			GenericClass genericClass = new GenericClass(clazz).getWithWildcardTypes();
@@ -297,7 +297,7 @@ public class CastClassManager {
 			if (typeMap.containsKey(t))
 				t = typeMap.get(t);
 
-			Class<?> clazz = GenericTypeReflector.erase(t);
+			Class<?> clazz = GenericClass.erase(t);
 			logger.debug("Checking bound: " + t);
 
 			if (!TestClusterGenerator.canUse(clazz))
@@ -333,7 +333,7 @@ public class CastClassManager {
 			InheritanceTree inheritanceTree = DependencyAnalysis.getInheritanceTree();
 			Set<Class<?>> boundCandidates = new LinkedHashSet<Class<?>>();
 			for (Type bound : typeVariable.getBounds()) {
-				Class<?> rawBound = GenericTypeReflector.erase(bound);
+				Class<?> rawBound = GenericClass.erase(bound);
 				boundCandidates.add(rawBound);
 				logger.debug("Getting concrete classes for " + rawBound);
 				boundCandidates.addAll(ConcreteClassAnalyzer.getInstance().getConcreteClasses(rawBound,
@@ -345,7 +345,7 @@ public class CastClassManager {
 
 				boolean isAssignable = true;
 				for (Type bound : typeVariable.getBounds()) {
-					if (GenericTypeReflector.erase(bound).equals(Enum.class)) {
+					if (GenericClass.erase(bound).equals(Enum.class)) {
 						if (clazz.isEnum())
 							continue;
 					}

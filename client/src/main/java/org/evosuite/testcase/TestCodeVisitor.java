@@ -243,7 +243,7 @@ public class TestCodeVisitor extends TestVisitor {
 			boolean first = true;
 			for (Type bound : ((WildcardType) type).getLowerBounds()) {
 				// If there are lower bounds we need to state them, even if Object
-				if (bound == null) // || GenericTypeReflector.erase(bound).equals(Object.class))
+				if (bound == null) // || GenericClass.erase(bound).equals(Object.class))
 					continue;
 
 				if (!first)
@@ -253,7 +253,7 @@ public class TestCodeVisitor extends TestVisitor {
 			}
 			for (Type bound : ((WildcardType) type).getUpperBounds()) {
 				if (bound == null
-						|| (!(bound instanceof CaptureType) && GenericTypeReflector.erase(bound).equals(Object.class)))
+						|| (!(bound instanceof CaptureType) && GenericClass.erase(bound).equals(Object.class)))
 					continue;
 
 				if (!first)
@@ -1145,7 +1145,7 @@ public class TestCodeVisitor extends TestVisitor {
 			Type declaredParamType = parameterTypes[i];
 			Type actualParamType = parameters.get(i).getType();
 			String name = getVariableName(parameters.get(i));
-			Class<?> rawParamClass = declaredParamType instanceof WildcardType ? Object.class : GenericTypeReflector.erase(declaredParamType);
+			Class<?> rawParamClass = declaredParamType instanceof WildcardType ? Object.class : GenericClass.erase(declaredParamType);
 			if (rawParamClass.isPrimitive() && name.equals("null")) {
 				parameterString += getPrimitiveNullCast(rawParamClass);
 			} else if (isGenericMethod && !(declaredParamType instanceof WildcardType )) {
@@ -1163,7 +1163,7 @@ public class TestCodeVisitor extends TestVisitor {
 
 				if (TypeUtils.isArrayType(declaredParamType)
 				        && TypeUtils.isArrayType(actualParamType)) {
-					Class<?> componentClass = GenericTypeReflector.erase(declaredParamType).getComponentType();
+					Class<?> componentClass = GenericClass.erase(declaredParamType).getComponentType();
 					if (componentClass.equals(Object.class)) {
 						GenericClass genericComponentClass = new GenericClass(
 						        componentClass);

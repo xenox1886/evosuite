@@ -428,7 +428,7 @@ public abstract class GenericAccessibleObject<T extends GenericAccessibleObject<
 	protected Type mapTypeParameters(Type toMapType, Type typeAndParams) {
 		if (isMissingTypeParameters(typeAndParams)) {
 			logger.debug("Is missing type parameters, so erasing types");
-			return GenericTypeReflector.erase(toMapType);
+			return GenericClass.erase(toMapType);
 		} else {
 			VarMap varMap = new VarMap();
 			Type handlingTypeAndParams = typeAndParams;
