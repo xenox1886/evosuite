@@ -106,7 +106,7 @@ public class GenericClass implements Serializable {
 		}
 		else if (type instanceof WildcardTypeImpl){
 			WildcardTypeImpl wildcardType = (WildcardTypeImpl) type;
-			if (wildcardType.getUpperBounds().length > 0){
+			if (wildcardType.getUpperBounds().length > 1){
 			    //TODO should take the least upper bound instead of object here
 			    return Object.class;
             }
