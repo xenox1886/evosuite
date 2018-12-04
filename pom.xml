@@ -14,7 +14,7 @@
 
     <licenses>
         <license>
-            <name> GNU Lesser General Public License (LGPL), version 3</name>
+            <name>GNU Lesser General Public License (LGPL), version 3</name>
             <url>http://www.gnu.org/licenses/lgpl-3.0.en.html</url>
             <distribution>repo</distribution>
         </license>
@@ -327,10 +327,10 @@
                             <version>0.9.0</version>
                         </dependency> -->
             <!--<dependency>-->
-                <!--&lt;!&ndash; LGPL &ndash;&gt;-->
-                <!--<groupId>com.panayotis</groupId>-->
-                <!--<artifactId>JavaPlot</artifactId>-->
-                <!--<version>0.4.0</version>-->
+            <!--&lt;!&ndash; LGPL &ndash;&gt;-->
+            <!--<groupId>com.panayotis</groupId>-->
+            <!--<artifactId>JavaPlot</artifactId>-->
+            <!--<version>0.4.0</version>-->
             <!--</dependency>-->
             <dependency>
                 <!-- BSD -->
@@ -680,7 +680,7 @@
                         <exclude>${integrationTests}</exclude>
                         <exclude>${systemTests}</exclude>
                     </excludes>
-                    <argLine> -Xms512m -Xmx4096m </argLine>
+                    <argLine>-Xms512m -Xmx4096m</argLine>
                 </configuration>
             </plugin>
             <!-- pluging to run tests after 'package' phase in 'integration-test' -->
@@ -831,7 +831,8 @@
                                         <shadedPattern>org.evosuite.shaded.org.apache</shadedPattern>
                                         <excludes>
                                             <!-- Important, otherwise AntInitializingListener would not work in Ant -->
-                                            <exclude>org.apache.tools.ant.taskdefs.optional.junit.JUnitResultFormatter</exclude>
+                                            <exclude>org.apache.tools.ant.taskdefs.optional.junit.JUnitResultFormatter
+                                            </exclude>
                                             <exclude>org.apache.tools.ant.taskdefs.optional.junit.JUnitTest</exclude>
                                             <exclude>org.apache.tools.ant.BuildException</exclude>
                                         </excludes>
@@ -845,12 +846,12 @@
                                         <shadedPattern>org.evosuite.shaded.org.objenesis</shadedPattern>
                                     </relocation>
                                     <!--<relocation>-->
-                                        <!--<pattern>org.slf4j</pattern>-->
-                                        <!--<shadedPattern>org.evosuite.shaded.org.slf4j</shadedPattern>-->
+                                    <!--<pattern>org.slf4j</pattern>-->
+                                    <!--<shadedPattern>org.evosuite.shaded.org.slf4j</shadedPattern>-->
                                     <!--</relocation>-->
                                     <!--<relocation>-->
-                                        <!--<pattern>ch.qos.logback</pattern>-->
-                                        <!--<shadedPattern>org.evosuite.shaded.ch.qos.logback</shadedPattern>-->
+                                    <!--<pattern>ch.qos.logback</pattern>-->
+                                    <!--<shadedPattern>org.evosuite.shaded.ch.qos.logback</shadedPattern>-->
                                     <!--</relocation>-->
                                 </relocations>
                             </configuration>
