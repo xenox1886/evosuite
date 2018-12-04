@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This class is used to try to stop all threads
  * spawn by the SUT.
- * 
+ *
  * @author arcuri
  *
  */
@@ -46,10 +46,10 @@ public class ThreadStopper {
 	protected transient Set<Thread> currentRunningThreads;
 
 	private final KillSwitch killSwitch;
-	
+
 	/**
-	 * Set of threads that we shouldn't try to stop, usually 
-	 * based on:  
+	 * Set of threads that we shouldn't try to stop, usually
+	 * based on:
 	 * TestCaseExecutor.TEST_EXECUTION_THREAD,
 	 * Properties.IGNORE_THREADS
 	 */
@@ -58,16 +58,16 @@ public class ThreadStopper {
 	/**
 	 * for how many ms should we wait on joining the threads?
 	 */
-	private final long timeout; 
+	private final long timeout;
 
 	/**
-	 * time stamp from when timeout are calculated
+	 * time stamp from when timeout are calculated in ns
 	 */
-	private long startTime;
-	
-	
+	private long startTimeNanos;
+
+
 	/**
-	 * 
+	 *
 	 */
 	public ThreadStopper(KillSwitch killSwitch, Set<String> threadsToIgnore, long timeout){
 		this.killSwitch = killSwitch;
@@ -77,21 +77,21 @@ public class ThreadStopper {
 		} else {
 			this.threadsToIgnore = threadsToIgnore;
 		}
-		this.startTime = 0;
+		this.startTimeNanos = 0;
 	}
 
 	public ThreadStopper(KillSwitch killSwitch,  long timeout, String ... threadsToIgnore){
 		this(killSwitch, new LinkedHashSet<String>(Arrays.asList(threadsToIgnore)), timeout);
 	}
-	
+
 	public void startRecordingTime(){
-		startTime = System.currentTimeMillis();
+		startTimeNanos = System.nanoTime();
 	}
-	
-	public long getStartTime(){
-		return startTime;
+
+	public long getStartTimeNanos(){
+		return startTimeNanos;
 	}
-	
+
 	/**
 	 * <p>
 	 * After the test case is executed, if any SUT thread is still running, we
@@ -100,7 +100,7 @@ public class ThreadStopper {
 	 * running.
 	 * </p>
 	 * <p>
-	 * <b>WARNING</b>: The sandbox might prevent accessing thread informations, 
+	 * <b>WARNING</b>: The sandbox might prevent accessing thread informations,
 	 * so need to check carefully when/where this method is called
 	 * </p>
 	 */
@@ -134,7 +134,7 @@ public class ThreadStopper {
 		if(RuntimeSettings.mockJVMNonDeterminism){
 			MockTimer.stopAllTimers();
 		}
-		
+
 		// Using enumerate here because getAllStackTraces may call hashCode of the SUT,
 		// if the SUT is a subclass of Thread
 		Thread[] threadArray = new Thread[Thread.activeCount() + 2];
@@ -142,7 +142,7 @@ public class ThreadStopper {
 
 		/*
 		 * First we set the kill switch in the instrumented bytecode, this
-		 * to prevent issues with code that do not handle interrupt 
+		 * to prevent issues with code that do not handle interrupt
 		 */
 		killSwitch.setKillSwitch(true);
 
@@ -158,7 +158,7 @@ public class ThreadStopper {
 
 			if (t.isAlive() && !currentRunningThreads.contains(t)) {
 				/*
-				 * We may want to ignore some threads such as GUI event handlers 
+				 * We may want to ignore some threads such as GUI event handlers
 				 */
 				for(String name : threadsToIgnore) {
 					if(t.getName().startsWith(name)) {
@@ -170,7 +170,7 @@ public class ThreadStopper {
 		}
 
 		/*
-		 * now, join up to a total of TIMEOUT ms. 
+		 * now, join up to a total of TIMEOUT ms.
 		 */
 		checkThreads:
 		for (Thread t : threadArray) {
@@ -190,7 +190,8 @@ public class ThreadStopper {
 					/*
 					 * In total the test case should not run for more than Properties.TIMEOUT ms
 					 */
-					long delta = System.currentTimeMillis() - startTime;
+					long delta = System.nanoTime() - startTimeNanos;
+                    delta /= 1_000_000;  //to ms
 					long waitingTime = timeout - delta;
 					if (waitingTime > 0) {
 						t.join(waitingTime);
@@ -207,7 +208,7 @@ public class ThreadStopper {
 
 		/*
 		 * we need it, otherwise issue during search in which accessing enum in SUT would call toString,
-		 * and so throw a TimeoutExceeded exception 
+		 * and so throw a TimeoutExceeded exception
 		 */
 		killSwitch.setKillSwitch(false);
 

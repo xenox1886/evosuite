@@ -84,7 +84,7 @@ public class StrongMutationSuiteFitness extends MutationSuiteFitness {
 			public int compare(TestChromosome tc1, TestChromosome tc2) {
 				ExecutionResult result1 = tc1.getLastExecutionResult();
 				ExecutionResult result2 = tc2.getLastExecutionResult();
-				long diff = result1.getExecutionTime() - result2.getExecutionTime();
+				long diff = result1.getExecutionTimeNanos() - result2.getExecutionTimeNanos();
 				if (diff == 0)
 					return 0;
 				else if (diff < 0)

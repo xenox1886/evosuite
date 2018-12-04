@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -287,7 +286,7 @@ public class TestRunnable implements InterfaceTestRunnable {
         Properties.PRINT_TO_SYSTEM = oldPrintToSystem;
 
         result.setTrace(ExecutionTracer.getExecutionTracer().getTrace());
-        result.setExecutionTime(System.currentTimeMillis() - threadStopper.getStartTime());
+        result.setExecutionTimeNanos(System.nanoTime() - threadStopper.getStartTimeNanos());
         result.setExecutedStatements(num.get());
         result.setThrownExceptions(exceptionsThrown);
         result.setReadProperties(org.evosuite.runtime.System.getAllPropertiesReadSoFar());

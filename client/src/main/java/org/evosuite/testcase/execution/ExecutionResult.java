@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.*;
 
 public class ExecutionResult implements Cloneable {
@@ -65,9 +64,9 @@ public class ExecutionResult implements Cloneable {
     protected ExecutionTrace trace;
 
     /**
-     * Duration of execution
+     * Duration of execution in ns
      */
-    protected long executionTime = 0L;
+    protected long executionTimeNanos = 0L;
 
     /**
      * Number of statements executed
@@ -425,17 +424,17 @@ public class ExecutionResult implements Cloneable {
     }
 
     /**
-     * @return the executionTime
+     * @return the executionTimeNanos
      */
-    public long getExecutionTime() {
-        return executionTime;
+    public long getExecutionTimeNanos() {
+        return executionTimeNanos;
     }
 
     /**
-     * @param executionTime the executionTime to set
+     * @param executionTimeNanos the executionTimeNanos to set
      */
-    public void setExecutionTime(long executionTime) {
-        this.executionTime = executionTime;
+    public void setExecutionTimeNanos(long executionTimeNanos) {
+        this.executionTimeNanos = executionTimeNanos;
     }
 
     /**
@@ -447,7 +446,7 @@ public class ExecutionResult implements Cloneable {
         copy.exceptions.putAll(exceptions);
         copy.trace = trace.lazyClone();
         copy.explicitExceptions.putAll(explicitExceptions);
-        copy.executionTime = executionTime;
+        copy.executionTimeNanos = executionTimeNanos;
         copy.regressionObjectDistance = regressionObjectDistance;
         copy.inputGoals = new LinkedHashMap<>(inputGoals);
         copy.outputGoals = new LinkedHashMap<>(outputGoals);
