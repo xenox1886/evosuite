@@ -19,14 +19,17 @@
  */
 package org.evosuite.ga;
 
-import java.io.Serializable;
-import java.util.*;
-
 import org.evosuite.Properties;
 import org.evosuite.ga.localsearch.LocalSearchObjective;
 import org.evosuite.utils.PublicCloneable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Abstract base class of chromosomes
@@ -130,6 +133,11 @@ public abstract class Chromosome implements Comparable<Chromosome>, Serializable
 
     public <T extends Chromosome> double getFitness(FitnessFunction<T> ff) {
         return fitnessValues.containsKey(ff) ? fitnessValues.get(ff) : ff.getFitness((T) this); // Calculate new value if non is cached
+    }
+
+    public <T extends Chromosome> void updateCache(FitnessFunction<T> ff) {
+        double fitness = ff.getFitness((T) this); // calculate new fitness, regardless of cache
+        fitnessValues.put(ff, fitness);
     }
 
     public Map<FitnessFunction<?>, Double> getFitnessValues() {

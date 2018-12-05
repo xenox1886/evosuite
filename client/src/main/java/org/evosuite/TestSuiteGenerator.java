@@ -30,6 +30,8 @@ import org.evosuite.coverage.CoverageCriteriaAnalyzer;
 import org.evosuite.coverage.FitnessFunctions;
 import org.evosuite.coverage.TestFitnessFactory;
 import org.evosuite.coverage.dataflow.DefUseCoverageSuiteFitness;
+import org.evosuite.ga.FitnessFunction;
+import org.evosuite.ga.PostProcessedChromsomeCollector;
 import org.evosuite.ga.metaheuristics.GeneticAlgorithm;
 import org.evosuite.ga.stoppingconditions.StoppingCondition;
 import org.evosuite.junit.JUnitAnalyzer;
@@ -237,6 +239,9 @@ public class TestSuiteGenerator {
 
         postProcessTests(testCases);
 
+        collectPostProcessedChromosomes(testCases);
+
+
         ClientServices.getInstance().getClientNode().publishPermissionStatistics();
         PermissionStatistics.getInstance().printStatistics(LoggingUtils.getEvoLogger());
 
@@ -254,6 +259,26 @@ public class TestSuiteGenerator {
         LoggingUtils.getEvoLogger().info("");
 
         return result;
+    }
+
+    /**
+     * Register chromsomes that cover a fitness function at the fitness function.
+     * This is needed, s.t. the post processed chromsome is collected
+     *
+     * @param testSuiteChromosome the test suite chromosome
+     */
+    private void collectPostProcessedChromosomes(TestSuiteChromosome testSuiteChromosome) {
+        for (int i = 0; i < testSuiteChromosome.size(); i++) {
+            TestChromosome testChromosome = testSuiteChromosome.getTestChromosome(i);
+            testChromosome.clearCachedResults();
+
+            for (FitnessFunction<?> fitnessFunction : testChromosome.getFitnessValues().keySet()) {
+                if (fitnessFunction instanceof PostProcessedChromsomeCollector) {
+                    ((PostProcessedChromsomeCollector) fitnessFunction).collectPostProcessedChromosome(testChromosome, i);
+                    testChromosome.updateCache(fitnessFunction);
+                }
+            }
+        }
     }
 
     /**
