@@ -241,7 +241,6 @@ public class TestSuiteGenerator {
 
         collectPostProcessedChromosomes(testCases);
 
-
         ClientServices.getInstance().getClientNode().publishPermissionStatistics();
         PermissionStatistics.getInstance().printStatistics(LoggingUtils.getEvoLogger());
 
