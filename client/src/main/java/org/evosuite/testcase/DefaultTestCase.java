@@ -1308,9 +1308,10 @@ public class DefaultTestCase implements TestCase, Serializable {
      */
     @Override
     public boolean hasMethodUnderTestCall() {
+        //FIXME inefficient!
         //iterate in reverse for mildly improved performance (still linear though obviously)
         ListIterator<Statement> reverseIterator = statements.listIterator(statements.size());
-        while (reverseIterator.hasPrevious()) {    //TODO not very efficient
+        while (reverseIterator.hasPrevious()) {
             Statement statement = reverseIterator.previous();
             if (statement instanceof MethodStatement) {
                 MethodStatement methodStatement = (MethodStatement) statement;
