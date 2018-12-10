@@ -273,8 +273,8 @@ public class TestSuiteGenerator {
 
             for (FitnessFunction<?> fitnessFunction : testChromosome.getFitnessValues().keySet()) {
                 if (fitnessFunction instanceof PostProcessedChromsomeCollector) {
-                    ((PostProcessedChromsomeCollector) fitnessFunction).collectPostProcessedChromosome(testChromosome, i);
                     testChromosome.updateCache(fitnessFunction);
+                    ((PostProcessedChromsomeCollector) fitnessFunction).collectPostProcessedChromosome(testChromosome, i);
                 }
             }
         }
